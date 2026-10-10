@@ -24,6 +24,13 @@ declare global {
       // Note: outside gateway mode, Workers AI (provider "cloudflare") is BYOK like every other
       // provider -- the account ID and API token live in the user's model config, not in env.
 
+      // Quick-model override (title generation and other one-shots). When QUICK_MODEL_API_URL is
+      // set the quick model is an OpenAI-compatible custom endpoint (e.g. Xiaomi MiMo) instead of
+      // the built-in Workers AI fast model.
+      QUICK_MODEL_ID?: string;
+      QUICK_MODEL_API_URL?: string;
+      QUICK_MODEL_API_TOKEN?: string;
+
       // Blueprint storage bindings.
       BLUEPRINTS: KVNamespace;             // Workers KV for blueprint metadata lookup
       BLUEPRINT_CONTENT: R2Bucket;         // R2 bucket for blueprint code snapshots

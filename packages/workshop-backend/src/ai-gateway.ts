@@ -47,9 +47,16 @@ export class AiGatewayConfig {
    */
   readonly binding?: Ai;
   readonly providers: Set<string>;
+  /** Quick model (title generation). See {@link getQuickModelConfig}. */
+  readonly quickModelId: string | undefined;
+  readonly quickModelApiUrl: string | undefined;
+  readonly quickModelApiToken: string | undefined;
 
   constructor(env: Cloudflare.Env) {
     this.gateway = env.CF_AI_GATEWAY!;
+    this.quickModelId = env.QUICK_MODEL_ID;
+    this.quickModelApiUrl = env.QUICK_MODEL_API_URL;
+    this.quickModelApiToken = env.QUICK_MODEL_API_TOKEN;
     if (!env.CF_AI_GATEWAY_ACCOUNT_ID) {
       throw new Error("CF_AI_GATEWAY_ACCOUNT_ID is required when CF_AI_GATEWAY is set.");
     }
@@ -134,9 +141,22 @@ export class AiGatewayConfig {
 
   /**
    * Get the AiModelConfig for the quick model (used for title generation).
+   *
+   * Prefers an endpoint-named quick model (e.g. MiMo via QUICK_MODEL_API_URL) so deployments can
+   * drop Workers AI from the catalog entirely. Falls back to the Workers AI fast model.
    */
   getQuickModelConfig(): AiModelConfig | undefined {
-    // Always use Workers AI here.
+    const model = this.quickModelId ?? QUICK_MODEL_ID;
+    const apiUrl = this.quickModelApiUrl;
+    if (apiUrl) {
+      return {
+        provider: "openai",
+        model,
+        apiToken: this.quickModelApiToken ?? "",
+        apiUrl,
+      };
+    }
+    // Workers AI fallback.
     return {
       provider: "cloudflare",
       model: QUICK_MODEL_ID,
