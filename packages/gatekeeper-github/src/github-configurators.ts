@@ -141,26 +141,39 @@ export class GitHubRepoConfiguratorUI extends RpcTarget implements GitHubRepoCon
       return repos.map(repoToOption);
     }
 
-    // Query: hit GitHub's /search/repositories scoped to the authenticated user.
+    // Query: hit GitHub's /search/repositories. Do NOT scope with `user:<login>`: that
+    // qualifier excludes organization repositories (e.g. text-consulting-group/yctour-app),
+    // which the account can access via org membership. Authenticated search already ranks
+    // accessible private repos.
     const exactRepo = splitRepoFullName(trimmedQuery);
     const normalizedQuery = exactRepo ? `${exactRepo.owner}/${exactRepo.repo}` : trimmedQuery;
+
+    // An exact owner/repo or GitHub URL: resolve it directly first so org repos work even
+    // when search ranking buries them.
+    const matches: ConfiguratorOption[] = [];
+    if (exactRepo) {
+      try {
+        const repo = await api.getRepo(exactRepo.owner, exactRepo.repo);
+        matches.push(repoToOption(repo));
+      } catch {
+        // Ignore exact lookup failures; fall through to search below.
+      }
+    }
+
     const login = await viewerLogin(this);
     const repos = await api.searchRepos({
-      q: `${normalizedQuery} user:${login} fork:true`,
+      // Keep the query as a name fragment; `user:` would hide org repos. `fork:true` only
+      // opts forks in rather than out; results are still ranked by relevance/updated.
+      q: `${normalizedQuery} fork:true`,
       per_page: AUTOCOMPLETE_OPTION_LIMIT,
       page: 1,
       sort: "updated",
       order: "desc",
     });
-    const matches = repos.map(repoToOption);
-
-    // Fall back to a direct lookup for exact names or URLs that scoped search didn't return.
-    if (exactRepo && !matches.some(option => option.value.toLowerCase() === normalizedQuery.toLowerCase())) {
-      try {
-        const repo = await api.getRepo(exactRepo.owner, exactRepo.repo);
-        matches.unshift(repoToOption(repo));
-      } catch {
-        // Ignore exact lookup failures; the dropdown will show search matches or "No matches".
+    for (const repo of repos) {
+      const option = repoToOption(repo);
+      if (!matches.some(existing => existing.value.toLowerCase() === option.value.toLowerCase())) {
+        matches.push(option);
       }
     }
 
