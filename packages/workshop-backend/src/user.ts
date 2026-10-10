@@ -335,10 +335,36 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
         name: email.split("@")[0],
         id: email,
       });
+      this.#seedDefaultModels();
       return true;
     }
 
     return false;
+  }
+
+  /**
+   * Pre-populate the model picker for a brand-new account from deployment env vars.
+   * Uses the same QUICK_MODEL_* endpoint that already drives title generation, so a new
+   * user sees the org's default model without configuring it by hand. Idempotent: the
+   * record is only written when the id is not already present.
+   */
+  #seedDefaultModels(): void {
+    const apiUrl = this.env.QUICK_MODEL_API_URL;
+    if (!apiUrl) return;
+    const model = this.env.QUICK_MODEL_ID ?? "mimo-v2.6-pro";
+    if (this.storage.aiModels.get(model)) return;
+    this.storage.aiModels.put({
+      profile: { type: "agent", id: model, name: model },
+      config: {
+        provider: "openai",
+        model,
+        apiToken: this.env.QUICK_MODEL_API_TOKEN ?? "",
+        apiUrl,
+      },
+    });
+    if (!this.storage.preferredModel.get()) {
+      this.storage.preferredModel.put(model);
+    }
   }
 
   async #newSessionToken(): Promise<string> {
