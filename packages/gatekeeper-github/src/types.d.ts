@@ -519,46 +519,10 @@ export type GitHubWriteFileOptions = {
 }
 
 /** A text file read from a GitHub repository. */
-export type GitHubFileContents = {
-  /** Repo-root-relative path. */
-  path: string;
-  /** Blob SHA of this version. Pass as `expectedSha` when updating. */
-  sha: string;
-  /** UTF-8 text content. */
-  content: string;
-  /** Size in bytes as reported by GitHub. */
-  size: number;
-  /** Branch, tag, or commit the content was read from. */
-  ref: string;
-}
 
 /** One entry in a directory listing. */
-export type GitHubDirectoryEntry = {
-  path: string;
-  name: string;
-  type: "file" | "dir" | "symlink" | "submodule";
-  sha: string;
-  size?: number;
-}
 
 /** Options for creating or replacing a text file. */
-export type GitHubWriteFileOptions = {
-  /** Repo-root-relative path. */
-  path: string;
-  /** UTF-8 text content. */
-  content: string;
-  /** Commit message. */
-  message: string;
-  /**
-   * Current blob SHA when replacing a file (from `readFile`). Omit when creating.
-   * A mismatch fails the write rather than overwriting a concurrent edit.
-   */
-  expectedSha?: string;
-  /** Branch to commit to. Defaults to the repository's default branch. */
-  branch?: string;
-  /** Committer name/email override. */
-  committer?: { name: string; email: string };
-}
 
 /** Options for creating a new issue. */
 export type GitHubCreateIssueOptions = {
