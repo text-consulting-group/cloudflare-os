@@ -436,8 +436,7 @@ export class GitHubApi {
     return verified?.email ?? null;
   }
 
-  async getRepo(owner: string, repo: string): Promise<GitHubRepoResponse> {
-    const result = await this.getRepoConditional(owner, repo);
+  async getRepo(owner: string, repo: string): Promise<GitHubRepoResponse> {    const result = await this.getRepoConditional(owner, repo);
     if (result.status === 304) {
       throw new Error("GitHub unexpectedly returned 304 for an unconditional repo request.");
     }
@@ -1085,4 +1084,89 @@ export class GitHubApi {
       options,
     );
   }
+
+  /**
+   * GET /repos/{owner}/{repo}/contents/{path}. Returns a single file's contents
+   * (base64 in `content`) or, for a directory, an array of entries.
+   */
+  async getContents(
+    owner: string,
+    repo: string,
+    path: string,
+    ref?: string,
+  ): Promise<GitHubContentsFileResponse | GitHubContentsDirResponse> {
+    const result = await this.#request<GitHubContentsFileResponse | GitHubContentsDirResponse>(
+      "GET",
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodePath(path)}`,
+      { query: ref ? { ref } : undefined },
+    );
+    return result.data;
+  }
+
+  /** PUT /repos/{owner}/{repo}/contents/{path}. Creates or replaces a file. */
+  async putContents(
+    owner: string,
+    repo: string,
+    path: string,
+    options: {
+      message: string;
+      /** Base64-encoded content. */
+      content: string;
+      sha?: string;
+      branch?: string;
+      committer?: { name: string; email: string };
+    },
+  ): Promise<GitHubContentsWriteResponse> {
+    const result = await this.#request<GitHubContentsWriteResponse>(
+      "PUT",
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodePath(path)}`,
+      { body: options },
+    );
+    return result.data;
+  }
+}
+
+/** One file or directory entry from GET /contents. */
+export type GitHubContentsEntry = {
+  name: string;
+  path: string;
+  sha: string;
+  size: number;
+  type: "file" | "dir" | "symlink" | "submodule";
+  content?: string;
+  encoding?: string;
+}
+
+/** GET /contents response for a file. */
+export type GitHubContentsFileResponse = GitHubContentsEntry & {
+  type: "file";
+  content: string;
+  encoding: "base64";
+  download_url: string | null;
+}
+
+/** GET /contents response for a directory. */
+export type GitHubContentsDirResponse = GitHubContentsEntry[]
+
+/** PUT /contents response. */
+export type GitHubContentsWriteResponse = {
+  content: {
+    name: string;
+    path: string;
+    sha: string;
+    size: number;
+    type: "file";
+  } | null;
+  commit: {
+    sha: string;
+    message: string;
+  };
+}
+
+function encodePath(path: string): string {
+  return path
+    .split("/")
+    .filter((seg) => seg.length > 0)
+    .map((seg) => encodeURIComponent(seg))
+    .join("/");
 }

@@ -4,11 +4,35 @@
  * A GitHub repo is a Git repo *plus* issues, pull requests, etc.
  */
 export interface GitHubRepo {
-  // TODO: Add methods to access code. Maybe represent that as `GitRepository`. For now we only
-  //   expose issues and PRs.
-
   /** Returns basic metadata about the repository. */
   getMetadata(): Promise<GitHubRepoMetadata>;
+
+  /**
+   * Reads a text file from the repository.
+   *
+   * `path` is repo-root-relative (e.g. `"src/index.ts"`). `ref` is a branch, tag, or
+   * commit SHA; omit for the default branch. Throws if the path is a directory or a
+   * binary larger than the API's inline limit.
+   */
+  readFile(path: string, ref?: string): Promise<GitHubFileContents>;
+
+  /**
+   * Lists a directory (or the repo root when `path` is omitted/empty).
+   *
+   * Directory listings return a single level; files carry `sha` and size. Use
+   * `readFile` for contents.
+   */
+  listDirectory(path?: string, ref?: string): Promise<GitHubDirectoryEntry[]>;
+
+  /**
+   * Creates or replaces a text file. Requires approval.
+   *
+   * `expectedSha` is the current file's blob SHA (from `readFile`/`listDirectory`).
+   * Pass it for updates so a concurrent edit fails instead of silently clobbering;
+   * omit it only when creating a new file. `branch` defaults to the repo's default
+   * branch — prefer a feature branch plus a pull request for source changes.
+   */
+  writeFile(options: GitHubWriteFileOptions): Promise<void>;
 
   /**
    * Creates a new issue in this repository.
@@ -450,6 +474,90 @@ export type GitHubPullRequestReviewDraft = {
   decision: GitHubReviewDecision;
   bodyMarkdown?: string;
   diffComments?: GitHubDraftDiffComment[];
+}
+
+/** A text file read from a GitHub repository. */
+export type GitHubFileContents = {
+  /** Repo-root-relative path. */
+  path: string;
+  /** Blob SHA of this version. Pass as `expectedSha` when updating. */
+  sha: string;
+  /** UTF-8 text content. */
+  content: string;
+  /** Size in bytes as reported by GitHub. */
+  size: number;
+  /** Branch, tag, or commit the content was read from. */
+  ref: string;
+}
+
+/** One entry in a directory listing. */
+export type GitHubDirectoryEntry = {
+  path: string;
+  name: string;
+  type: "file" | "dir" | "symlink" | "submodule";
+  sha: string;
+  size?: number;
+}
+
+/** Options for creating or replacing a text file. */
+export type GitHubWriteFileOptions = {
+  /** Repo-root-relative path. */
+  path: string;
+  /** UTF-8 text content. */
+  content: string;
+  /** Commit message. */
+  message: string;
+  /**
+   * Current blob SHA when replacing a file (from `readFile`). Omit when creating.
+   * A mismatch fails the write rather than overwriting a concurrent edit.
+   */
+  expectedSha?: string;
+  /** Branch to commit to. Defaults to the repository's default branch. */
+  branch?: string;
+  /** Committer name/email override. */
+  committer?: { name: string; email: string };
+}
+
+/** A text file read from a GitHub repository. */
+export type GitHubFileContents = {
+  /** Repo-root-relative path. */
+  path: string;
+  /** Blob SHA of this version. Pass as `expectedSha` when updating. */
+  sha: string;
+  /** UTF-8 text content. */
+  content: string;
+  /** Size in bytes as reported by GitHub. */
+  size: number;
+  /** Branch, tag, or commit the content was read from. */
+  ref: string;
+}
+
+/** One entry in a directory listing. */
+export type GitHubDirectoryEntry = {
+  path: string;
+  name: string;
+  type: "file" | "dir" | "symlink" | "submodule";
+  sha: string;
+  size?: number;
+}
+
+/** Options for creating or replacing a text file. */
+export type GitHubWriteFileOptions = {
+  /** Repo-root-relative path. */
+  path: string;
+  /** UTF-8 text content. */
+  content: string;
+  /** Commit message. */
+  message: string;
+  /**
+   * Current blob SHA when replacing a file (from `readFile`). Omit when creating.
+   * A mismatch fails the write rather than overwriting a concurrent edit.
+   */
+  expectedSha?: string;
+  /** Branch to commit to. Defaults to the repository's default branch. */
+  branch?: string;
+  /** Committer name/email override. */
+  committer?: { name: string; email: string };
 }
 
 /** Options for creating a new issue. */

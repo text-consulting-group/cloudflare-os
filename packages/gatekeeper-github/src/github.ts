@@ -64,6 +64,9 @@ import type {
   GitHubRepoMetadata,
   GitHubRepoRef,
   GitHubReviewDecision,
+  GitHubFileContents,
+  GitHubDirectoryEntry,
+  GitHubWriteFileOptions,
 } from "./types";
 import TYPES_CODE from "./types.txt";
 import {
@@ -242,6 +245,17 @@ type MergePullRequestAction = BaseAction & {
   options?: GitHubPullRequestMergeOptions;
 };
 
+type WriteFileAction = BaseAction & {
+  type: "writeFile";
+  path: string;
+  content: string;
+  message: string;
+  expectedSha?: string;
+  branch?: string;
+  committer?: { name: string; email: string };
+  previousSha?: string;
+};
+
 type GitHubAction =
   | CreateIssueAction
   | CreatePullRequestAction
@@ -253,7 +267,8 @@ type GitHubAction =
   | PostCommentAction
   | PostReviewAction
   | ReplyToDiffCommentAction
-  | MergePullRequestAction;
+  | MergePullRequestAction
+  | WriteFileAction;
 
 type StoredActionRecord = {
   action: GitHubAction;
@@ -1969,6 +1984,8 @@ export class GitHubGatekeeperImpl extends DurableObject<Env, GitHubGatekeeperImp
       case "replyToDiffComment":
       case "mergePullRequest":
         return kind === "pull" && action.pullId === provisionalId;
+      case "writeFile":
+        return false;
     }
   }
 
@@ -2027,7 +2044,7 @@ export class GitHubGatekeeperImpl extends DurableObject<Env, GitHubGatekeeperImp
 
   #pendingActionsForEntity(kind: EntityKind, logicalId: string): GitHubAction[] {
     return this.#listPendingActions().filter(action => {
-      if (action.type === "createIssue" || action.type === "createPullRequest") {
+      if (action.type === "createIssue" || action.type === "createPullRequest" || action.type === "writeFile") {
         return false;
       }
 
@@ -3437,6 +3454,19 @@ export class GitHubGatekeeperImpl extends DurableObject<Env, GitHubGatekeeperImp
         this.#clearCaches();
         return;
       }
+      case "writeFile": {
+        const response = await this.#withApi(api => api.putContents(
+          action.owner, action.repo, action.path, {
+            message: this.#rewriteKnownReferences(action.message, true),
+            content: btoa(action.content),
+            sha: action.expectedSha,
+            branch: action.branch,
+            committer: action.committer,
+          }));
+        this.#markActionApproved(action);
+        this.#clearCaches();
+        return;
+      }
     }
   }
 
@@ -3631,6 +3661,73 @@ export class GitHubGatekeeperImpl extends DurableObject<Env, GitHubGatekeeperImp
     };
   }
 
+  async prepareWriteFile(options: GitHubWriteFileOptions): Promise<WriteFileAction> {
+    let previousSha: string | undefined;
+    if (options.expectedSha) {
+      const existing = await this.#withApi(api => api.getContents(
+        this.ctx.props.owner, this.ctx.props.repo, options.path, options.branch));
+      if (Array.isArray(existing)) {
+        throw new Error(`${options.path} is a directory; writeFile expects a file path.`);
+      }
+      previousSha = existing.sha;
+      if (existing.sha !== options.expectedSha) {
+        throw new Error(
+          `${options.path} has changed since it was read ` +
+          `(expected ${options.expectedSha}, found ${existing.sha}). Re-read the file before writing.`);
+      }
+    }
+    return {
+      type: "writeFile",
+      approvalId: this.#nextActionId(),
+      submittedAt: Date.now(),
+      owner: this.ctx.props.owner,
+      repo: this.ctx.props.repo,
+      path: options.path,
+      content: options.content,
+      message: options.message,
+      expectedSha: options.expectedSha,
+      branch: options.branch,
+      committer: options.committer,
+      previousSha,
+    };
+  }
+
+  async readFile(path: string, ref?: string): Promise<GitHubFileContents> {
+    const result = await this.#withApi(api => api.getContents(
+      this.ctx.props.owner, this.ctx.props.repo, path, ref));
+    if (Array.isArray(result)) {
+      throw new Error(`${path} is a directory; use listDirectory instead.`);
+    }
+    if (result.type !== "file") {
+      throw new Error(`${path} is a ${result.type}, not a text file.`);
+    }
+    if (result.encoding !== "base64" || result.content == null) {
+      throw new Error(`${path} has no inline base64 content (binary or too large).`);
+    }
+    return {
+      path: result.path,
+      sha: result.sha,
+      content: atob(result.content.replace(/\n/g, "")),
+      size: result.size,
+      ref: ref ?? "HEAD",
+    };
+  }
+
+  async listDirectory(path?: string, ref?: string): Promise<GitHubDirectoryEntry[]> {
+    const result = await this.#withApi(api => api.getContents(
+      this.ctx.props.owner, this.ctx.props.repo, path ?? "", ref));
+    if (!Array.isArray(result)) {
+      throw new Error(`${path ?? ""} is a file; use readFile instead.`);
+    }
+    return result.map(entry => ({
+      path: entry.path,
+      name: entry.name,
+      type: entry.type,
+      sha: entry.sha,
+      size: entry.size,
+    }));
+  }
+
   async prepareSetTitle(targetKind: EntityKind, targetId: string, title: string): Promise<SetTitleAction> {
     const details = targetKind === "issue" ? await this.#getIssueDetails(targetId) : await this.#getPullRequestDetails(targetId);
     return {
@@ -3818,6 +3915,36 @@ class GitHubRepoSessionImpl extends RpcTarget implements GitHubRepoSession {
       description: `Read basic metadata for the GitHub repository ${metadata.fullName}.`,
     });
     return metadata;
+  }
+
+  async readFile(path: string, ref?: string): Promise<GitHubFileContents> {
+    const contents = await this.#gatekeeper.readFile(path, ref);
+    await this.#approvalQueue.authorizeObservation({
+      title: `Read file ${path}`,
+      description: `Read the contents of ${path} from the GitHub repository.`,
+    });
+    return contents;
+  }
+
+  async listDirectory(path?: string, ref?: string): Promise<GitHubDirectoryEntry[]> {
+    const entries = await this.#gatekeeper.listDirectory(path, ref);
+    await this.#approvalQueue.authorizeObservation({
+      title: `List directory ${path ?? "(root)"}`,
+      description: `List entries in ${path ?? "the repository root"}.`,
+    });
+    return entries;
+  }
+
+  async writeFile(options: GitHubWriteFileOptions): Promise<void> {
+    const action = await this.#gatekeeper.prepareWriteFile(options);
+    await this.#gatekeeper.submitActionForApproval(this.#approvalQueue, action, {
+      title: `Write file ${options.path}`,
+      description:
+        `Commit ${options.content.length} bytes to ${options.path}` +
+        `${options.branch ? ` on branch ${options.branch}` : " on the default branch"} ` +
+        `with message "${options.message}".`,
+      implementsRevert: Boolean(action.previousSha),
+    });
   }
 
   async createIssue(options: GitHubCreateIssueOptions): Promise<GitHubIssue> {
