@@ -14,44 +14,47 @@ import type {
 } from "../src/management-types";
 import type { ScheduleStatus } from "../src/types";
 import { formatCadence, formatOccurrences, formatTiming } from "./format";
+import { useLocale, type Messages } from "./locale";
 
 export const CREATE_SCHEDULE_PROMPT =
   "Help me create a scheduled task. Ask me what it should do, which workspace and resources it should use, when it should run, and which timezone to use. Then set up the schedule.";
 
-const STARTERS = [
-  {
-    title: "Daily brief",
-    cadence: "Weekdays at 8:00 AM",
-    description: "Your calendar for the day plus the unread mail that needs a reply",
-    prompt:
-      "Every weekday at 8:00 AM, send me a short brief of my calendar for the day and the unread email that needs a reply. Ask me which calendar and mailbox to use and which timezone to use, then set up the schedule.",
-    icon: CalendarBlank,
-  },
-  {
-    title: "Weekly roundup",
-    cadence: "Fridays at 4:00 PM",
-    description: "Turn the week’s Linear issues and GitHub pull requests into a status update",
-    prompt:
-      "Every Friday at 4:00 PM, turn this week’s Linear issues and GitHub pull requests into a status update. Ask me which Linear team, GitHub repositories, and timezone to use, then set up the schedule.",
-    icon: CalendarBlank,
-  },
-  {
-    title: "Follow-up monitor",
-    cadence: "Weekdays at 9:00 AM",
-    description: "Flag the Gmail threads that are waiting on your reply",
-    prompt:
-      "Every weekday at 9:00 AM, flag the Gmail threads that are waiting on my reply. Ask me which mailbox, destination, and timezone to use, then set up the schedule.",
-    icon: WarningCircle,
-  },
-  {
-    title: "Metrics snapshot",
-    cadence: "Mondays at 8:00 AM",
-    description: "Refresh a spreadsheet or query and call out what moved",
-    prompt:
-      "Every Monday at 8:00 AM, refresh a spreadsheet or query and call out what moved. Ask me which data source, destination, and timezone to use, then set up the schedule.",
-    icon: Clock,
-  },
-] as const;
+function buildStarters(t: Messages) {
+  return [
+    {
+      title: t.starterDailyTitle,
+      cadence: t.starterDailyCadence,
+      description: t.starterDailyDesc,
+      prompt:
+        "Every weekday at 8:00 AM, send me a short brief of my calendar for the day and the unread email that needs a reply. Ask me which calendar and mailbox to use and which timezone to use, then set up the schedule.",
+      icon: CalendarBlank,
+    },
+    {
+      title: t.starterWeeklyTitle,
+      cadence: t.starterWeeklyCadence,
+      description: t.starterWeeklyDesc,
+      prompt:
+        "Every Friday at 4:00 PM, turn this week’s Linear issues and GitHub pull requests into a status update. Ask me which Linear team, GitHub repositories, and timezone to use, then set up the schedule.",
+      icon: CalendarBlank,
+    },
+    {
+      title: t.starterFollowTitle,
+      cadence: t.starterFollowCadence,
+      description: t.starterFollowDesc,
+      prompt:
+        "Every weekday at 9:00 AM, flag the Gmail threads that are waiting on my reply. Ask me which mailbox, destination, and timezone to use, then set up the schedule.",
+      icon: WarningCircle,
+    },
+    {
+      title: t.starterMetricsTitle,
+      cadence: t.starterMetricsCadence,
+      description: t.starterMetricsDesc,
+      prompt:
+        "Every Monday at 8:00 AM, refresh a spreadsheet or query and call out what moved. Ask me which data source, destination, and timezone to use, then set up the schedule.",
+      icon: Clock,
+    },
+  ] as const;
+}
 
 type Filter = "all" | "active" | "dead" | "finished";
 
@@ -77,6 +80,17 @@ export default function SchedulerPage({
   openPrompt,
   resolveWorkspaceTitles,
 }: Props) {
+  const { t } = useLocale();
+  const starters = useMemo(() => buildStarters(t), [t]);
+  const filters = useMemo(
+    () => [
+      { value: "all" as Filter, label: t.all },
+      { value: "active" as Filter, label: t.active },
+      { value: "dead" as Filter, label: t.dead },
+      { value: "finished" as Filter, label: t.finished },
+    ],
+    [t],
+  );
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -178,10 +192,10 @@ export default function SchedulerPage({
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-kumo-default">
-            Scheduled tasks
+            {t.scheduledTasks}
           </h1>
           <p className="mt-1 text-sm text-kumo-subtle">
-            Wake a workspace and run its code on a schedule you choose.
+            {t.subtitle}
           </p>
         </div>
         <button
@@ -190,7 +204,7 @@ export default function SchedulerPage({
           className="press inline-flex h-9 items-center justify-center gap-2 self-start rounded-lg bg-kumo-brand px-3.5 text-sm font-medium text-white hover:bg-kumo-brand-hover"
           onClick={() => void runHostAction(() => openPrompt(CREATE_SCHEDULE_PROMPT))}
         >
-          <Plus size={16} weight="bold" /> Create schedule
+          <Plus size={16} weight="bold" /> {t.createSchedule}
         </button>
       </header>
 
@@ -198,19 +212,19 @@ export default function SchedulerPage({
         <>
           <label className="mt-4 flex h-9 items-center gap-2 rounded-lg border border-kumo-line bg-kumo-control px-3 text-kumo-inactive focus-within:ring-2 focus-within:ring-kumo-ring">
             <MagnifyingGlass size={15} />
-            <span className="sr-only">Search scheduled tasks</span>
+            <span className="sr-only">{t.searchLabel}</span>
             <input
               className="min-w-0 flex-1 bg-transparent text-sm text-kumo-default outline-none placeholder:text-kumo-inactive"
               type="search"
               value={query}
               maxLength={200}
-              placeholder="Search scheduled tasks…"
+              placeholder={t.searchPlaceholder}
               onChange={(event) => setQuery(event.currentTarget.value)}
             />
           </label>
 
           <nav className="mt-4 flex gap-5 border-b border-kumo-line" aria-label="Schedule status">
-            {FILTERS.map((item) => (
+            {filters.map((item) => (
               <button
                 key={item.value}
                 type="button"
@@ -231,7 +245,7 @@ export default function SchedulerPage({
 
       <section aria-live="polite" aria-busy={loading} className={isEmpty ? undefined : "min-h-32"}>
         {loading ? (
-          <p className="py-12 text-center text-sm text-kumo-subtle">Loading scheduled tasks…</p>
+          <p className="py-12 text-center text-sm text-kumo-subtle">{t.loading}</p>
         ) : error ? (
           <div className="flex flex-col items-center gap-3 py-12 text-center">
             <p className="text-sm text-kumo-danger">Couldn’t load scheduled tasks.</p>
@@ -239,12 +253,12 @@ export default function SchedulerPage({
               className="text-sm font-medium text-kumo-link hover:text-kumo-brand-hover"
               onClick={() => void load()}
             >
-              Try again
+              {t.tryAgain}
             </button>
           </div>
         ) : isEmpty ? null : schedules.length === 0 ? (
           <p className="py-12 text-center text-sm text-kumo-subtle">
-            No scheduled tasks match these filters.
+            {t.noMatches}
           </p>
         ) : (
           <div className="divide-y divide-kumo-line">
@@ -284,7 +298,7 @@ export default function SchedulerPage({
               className="rounded-lg border border-kumo-line bg-kumo-control px-4 py-2 text-sm font-medium text-kumo-default hover:bg-kumo-tint disabled:opacity-50"
               onClick={() => void load(cursor)}
             >
-              {loadingMore ? "Loading…" : "Load more"}
+              {loadingMore ? t.loadingMore : t.loadMore}
             </button>
           </div>
         )}
@@ -295,10 +309,10 @@ export default function SchedulerPage({
           id="get-started-heading"
           className="text-xs font-medium uppercase tracking-[0.12em] text-kumo-inactive"
         >
-          Get started
+          {t.getStarted}
         </h2>
         <div className="mt-3 grid gap-1">
-          {STARTERS.map((starter) => {
+          {starters.map((starter) => {
             const Icon = starter.icon;
             return (
               <button
@@ -345,8 +359,9 @@ function ScheduleRow({
   onToggle: () => void;
   onOpen: () => void;
 }) {
-  const timing = formatTiming(schedule, now);
-  const target = targetTitle ?? "Unavailable workspace";
+  const { t } = useLocale();
+  const timing = formatTiming(schedule, now, t);
+  const target = targetTitle ?? t.unavailableWorkspace;
   // A workspace the user can no longer see has nothing to open.
   const unavailable = targetTitle === null;
   // Only failed schedules have something to expand: why they need attention. The caret is a sibling
@@ -394,7 +409,7 @@ function ScheduleRow({
             type="button"
             data-action="toggle-diagnostic"
             aria-expanded={expanded}
-            aria-label={`${expanded ? "Hide" : "Show"} why ${schedule.title} needs attention`}
+            aria-label={expanded ? t.hideWhy(schedule.title) : t.showWhy(schedule.title)}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-kumo-inactive hover:bg-kumo-fill hover:text-kumo-default"
             onClick={onToggle}
           >
@@ -413,13 +428,6 @@ function ScheduleRow({
     </article>
   );
 }
-
-const FILTERS: ReadonlyArray<{ value: Filter; label: string }> = [
-  { value: "all", label: "All" },
-  { value: "active", label: "Active" },
-  { value: "dead", label: "Needs attention" },
-  { value: "finished", label: "Finished" },
-];
 
 function statusesForFilter(filter: Filter): ScheduleStatus[] | undefined {
   if (filter === "all") return undefined;

@@ -1,5 +1,6 @@
 import type { ManagementSchedule } from "../src/management-types";
 import type { ScheduleCadence, Weekday } from "../src/types";
+import type { Messages } from "./locale";
 
 const WEEKDAYS: Record<Weekday, string> = {
   SU: "Sun",
@@ -17,7 +18,7 @@ export type ScheduleTiming = {
   diagnostic?: string;
 };
 
-export function formatCadence(cadence: ScheduleCadence, locale = "en-US"): string {
+export function formatCadence(cadence: ScheduleCadence, locale = "en-US", t?: Messages): string {
   if (cadence.kind === "interval") return formatInterval(cadence.everyMs);
   if (cadence.kind === "once") {
     const date = new Intl.DateTimeFormat(locale, {
@@ -31,25 +32,25 @@ export function formatCadence(cadence: ScheduleCadence, locale = "en-US"): strin
       hour: "numeric",
       minute: "2-digit",
     }).format(cadence.fireAt);
-    return `Once on ${date} at ${time}`;
+    return t ? t.onceOn(date, time) : `Once on ${date} at ${time}`;
   }
 
   const { rule } = cadence;
   if (rule.freq === "hourly") {
-    const prefix = rule.interval === 1 ? "Hourly" : `Every ${rule.interval} hours`;
+    const prefix = t ? (rule.interval === 1 ? t.hourly : t.everyNHours(rule.interval)) : (rule.interval === 1 ? "Hourly" : `Every ${rule.interval} hours`);
     return `${prefix} at :${rule.minute.toString().padStart(2, "0")}`;
   }
   const time = formatClock(rule.hour, rule.minute, locale);
   if (rule.freq === "daily") {
-    return rule.interval === 1 ? `Daily at ${time}` : `Every ${rule.interval} days at ${time}`;
+    return t ? (rule.interval === 1 ? t.dailyAt(time) : t.everyNDaysAt(rule.interval, time)) : (rule.interval === 1 ? `Daily at ${time}` : `Every ${rule.interval} days at ${time}`);
   }
   if (rule.interval === 1 && rule.byDay.join(",") === "MO,TU,WE,TH,FR") {
-    return `Weekdays at ${time}`;
+    return t ? t.weekdaysAt(time) : `Weekdays at ${time}`;
   }
   const days = new Intl.ListFormat(locale, { style: "short", type: "conjunction" }).format(
     rule.byDay.map((day) => WEEKDAYS[day]),
   );
-  const prefix = rule.interval === 1 ? "Weekly" : `Every ${rule.interval} weeks`;
+  const prefix = t ? (rule.interval === 1 ? t.weekly : t.everyNWeeks(rule.interval)) : (rule.interval === 1 ? "Weekly" : `Every ${rule.interval} weeks`);
   return `${prefix} on ${days} at ${time}`;
 }
 
@@ -57,23 +58,30 @@ export function formatCadence(cadence: ScheduleCadence, locale = "en-US"): strin
 export function formatOccurrences(
   schedule: ManagementSchedule,
   locale = "en-US",
+  t?: Messages,
 ): string | undefined {
   const bound = schedule.occurrences;
   if (!bound) return undefined;
   if ("count" in bound) {
-    const noun = bound.count === 1 ? "occurrence" : "occurrences";
-    return `${schedule.occurrenceCount ?? 0} of ${bound.count} ${noun}`;
+    const noun = bound.count === 1 ? (t ? "회" : "occurrence") : (t ? "회" : "occurrences");
+    return t
+      ? `${schedule.occurrenceCount ?? 0} / ${bound.count}${t.times}`
+      : `${schedule.occurrenceCount ?? 0} of ${bound.count} ${noun}`;
   }
-  return `until ${formatAbsolute(bound.until, scheduleTimeZone(schedule), locale)}`;
+  const when = formatAbsolute(bound.until, scheduleTimeZone(schedule), locale);
+  return t ? t.until(when) : `until ${when}`;
 }
 
 export function formatTiming(
   schedule: ManagementSchedule,
   now = Date.now(),
+  t?: Messages,
   locale = "en-US",
 ): ScheduleTiming {
   const timestamp = scheduleTimestamp(schedule);
-  if (timestamp === undefined) return { relative: "Next run pending" };
+  if (timestamp === undefined) {
+    return { relative: t ? t.nextRunPending : "Next run pending" };
+  }
   const absolute = formatAbsolute(timestamp, scheduleTimeZone(schedule), locale);
   if (schedule.status === "active") {
     return {
@@ -82,8 +90,9 @@ export function formatTiming(
     };
   }
   if (schedule.status === "dead") {
+    const ago = formatRelative(schedule.failedAt - now, locale);
     return {
-      relative: `Failed ${formatRelative(schedule.failedAt - now, locale)}`,
+      relative: t ? t.failedAgo(ago) : `Failed ${ago}`,
       absolute,
       diagnostic:
         schedule.failureCode === "authorization_failed"
@@ -92,11 +101,12 @@ export function formatTiming(
     };
   }
   if (schedule.status === "completed") {
+    const ago = formatRelative(schedule.completedAt - now, locale);
     return {
-      relative: `Completed ${formatRelative(schedule.completedAt - now, locale)}`,
+      relative: t ? t.completedAgo(ago) : `Completed ${ago}`,
       absolute,
       diagnostic: schedule.occurrences
-        ? "This recurring task used its last scheduled occurrence."
+        ? (t ? t.lastOccurrence : "This recurring task used its last scheduled occurrence.")
         : "This one-time task completed.",
     };
   }
@@ -105,7 +115,7 @@ export function formatTiming(
     absolute,
     diagnostic: schedule.cadence.kind === "once"
       ? "This one-time task passed without delivery."
-      : "This recurring task's cutoff passed before its first occurrence.",
+      : (t ? t.cutoffPassed : "This recurring task's cutoff passed before its first occurrence."),
   };
 }
 
