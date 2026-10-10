@@ -365,6 +365,13 @@ export function getModel(env: Cloudflare.Env, config: AiModelConfig,
         options.sessionAffinity);
   }
 
+  // A model that names its own endpoint (e.g. Xiaomi MiMo's OpenAI-compatible API) is a direct
+  // provider config: platform AI Gateway cannot reach that host, so honor apiUrl/apiToken here
+  // rather than silently dropping them on the gateway path.
+  if (config.apiUrl) {
+    return getModelDirect(config, options.sessionAffinity);
+  }
+
   // Otherwise: when a platform AI Gateway is configured, route through it (platform-funded free
   // tier). The config's apiToken/apiUrl are ignored in that mode.
   let gwConfig = getAiGatewayConfig(env);

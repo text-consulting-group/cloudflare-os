@@ -161,7 +161,7 @@ export default function AddModelModal({ visible, onCancel, onSuccess, authentica
 
     const isOllama = selection?.provider === 'ollama'
     const isCloudflare = selection?.provider === 'cloudflare'
-    const showCredentials = !gatewayMode
+    const showCredentials = !gatewayMode || selection?.type === 'custom'
 
     if (showCredentials && selection && !isOllama && !apiToken.trim()) {
       newErrors.apiToken = 'Please enter your API token'
@@ -197,9 +197,9 @@ export default function AddModelModal({ visible, onCancel, onSuccess, authentica
       const config: AiModelConfig = {
         provider: selection!.provider,
         model: finalModelId,
-        apiToken: gatewayMode ? '' : apiToken.trim(),
-        ...(!gatewayMode && accountId.trim() && { accountId: accountId.trim() }),
-        ...(!gatewayMode && apiUrl.trim() && { apiUrl: apiUrl.trim() }),
+        apiToken: (gatewayMode && !showCustomFields) ? '' : apiToken.trim(),
+        ...((!gatewayMode || showCustomFields) && accountId.trim() && { accountId: accountId.trim() }),
+        ...((!gatewayMode || showCustomFields) && apiUrl.trim() && { apiUrl: apiUrl.trim() }),
       }
 
       await authenticatedApi.addModel(profile, config)
@@ -218,7 +218,9 @@ export default function AddModelModal({ visible, onCancel, onSuccess, authentica
   const example = selection ? exampleModel(selection.provider) : null
   const isOllama = selection?.provider === 'ollama'
   const isCloudflare = selection?.provider === 'cloudflare'
-  const showCredentials = !gatewayMode
+  // Gateway mode supplies credentials for its catalog models; a custom model that names its own
+  // endpoint (e.g. an OpenAI-compatible host like MiMo) still needs the user's key and URL.
+  const showCredentials = !gatewayMode || showCustomFields
 
   // Group options by provider for rendering with visual separators.
   const groupedOptions: { provider: string; items: typeof options }[] = []
