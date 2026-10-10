@@ -6,6 +6,7 @@ import { PublicApi, ServerConfig } from '@gadgets/workshop-shared/api'
 import { RpcContext } from './RpcContext'
 import { ServerConfigContext, ServerConfigErrorContext } from './ServerConfigContext'
 import { ThemeProvider } from './ThemeContext'
+import { LocaleProvider } from './LocaleContext'
 import { createRouter } from './router'
 import AnnouncementBanner from './components/AnnouncementBanner'
 import { applyAccentColor, applyStoredThemeMode } from './theme'
@@ -163,16 +164,18 @@ function AppWithConnection() {
   }, [serverConfig]);
 
   return (
-    <ThemeProvider>
-      <RpcContext.Provider value={rpcState}>
-        <ServerConfigErrorContext.Provider value={serverConfigError}>
-          <ServerConfigContext.Provider value={serverConfig}>
-            <AnnouncementBanner />
-            <RouterProvider router={router} />
-          </ServerConfigContext.Provider>
-        </ServerConfigErrorContext.Provider>
-      </RpcContext.Provider>
-    </ThemeProvider>
+    <LocaleProvider>
+      <ThemeProvider>
+        <RpcContext.Provider value={rpcState}>
+          <ServerConfigErrorContext.Provider value={serverConfigError}>
+            <ServerConfigContext.Provider value={serverConfig}>
+              <AnnouncementBanner />
+              <RouterProvider router={router} />
+            </ServerConfigContext.Provider>
+          </ServerConfigErrorContext.Provider>
+        </RpcContext.Provider>
+      </ThemeProvider>
+    </LocaleProvider>
   );
 }
 

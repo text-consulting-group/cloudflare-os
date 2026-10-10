@@ -4,6 +4,7 @@ import { Tooltip } from '@cloudflare/kumo'
 import UserMenu from '../UserMenu'
 import { useTheme } from '../../ThemeContext'
 import type { ThemeMode } from '../../theme'
+import { useLocale, type Locale } from '../../LocaleContext'
 
 const THEME_SEQUENCE: ThemeMode[] = ['system', 'light', 'dark']
 
@@ -38,6 +39,24 @@ function ThemeModeButton() {
         </button>
       )}
     />
+  )
+}
+
+function LanguageSelect() {
+  const { locale, setLocale, t } = useLocale()
+  return (
+    <label className="flex items-center">
+      <select
+        aria-label={t.language}
+        value={locale}
+        onChange={(event) => setLocale(event.target.value as Locale)}
+        className="h-8 max-w-[92px] cursor-pointer rounded-md border border-kumo-line bg-kumo-elevated px-1.5 text-[11px] text-kumo-subtle"
+      >
+        <option value="en">English</option>
+        <option value="vi">Tiếng Việt</option>
+        <option value="ko">한국어</option>
+      </select>
+    </label>
   )
 }
 
@@ -87,6 +106,7 @@ export default function SidebarUtilityStrip({ collapsed = false }: { collapsed?:
         <Plug size={15} />
       </StripLink>
       <div className={collapsed ? 'flex flex-col items-center gap-2' : 'ml-auto flex items-center gap-1'}>
+        <LanguageSelect />
         <ThemeModeButton />
         <UserMenu />
       </div>
