@@ -54,6 +54,20 @@ export type ProvidedAccountInfo = {
 type AccountCreatorStub = Required<Pick<GatekeeperVendor, "createAccount">>;
 type SingletonAccountStub = Required<Pick<GatekeeperUser, "getSingletonGatekeeperClass" | "startAppUi">>;
 
+// Mirrors server.ts's admin check using this DO's user id name and the ADMINS binding.
+function userIsAdmin(env: Pick<Cloudflare.Env, "ADMINS">, userIdName: string | undefined): boolean {
+  let name = userIdName;
+  let admins = env.ADMINS;
+  if (!name || !admins) return false;
+  if (typeof admins === "string") {
+    admins = JSON.parse(admins);
+  }
+  if (!Array.isArray(admins)) {
+    throw new TypeError("ADMINS must be configured as an array of usernames.");
+  }
+  return admins.includes(name);
+}
+
 function areCredentialsValid(record: ConnectedAccountRecord): boolean {
   if (record.credentialsExpired) return false;
   if (record.credentialExpiresAt && record.credentialExpiresAt.valueOf() < Date.now()) return false;
@@ -1380,7 +1394,9 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
     // Present only when description.singleton is set; gate on that, then call through the derived
     // SingletonAccountStub view (see its definition for why the cast is needed).
     if (!record?.description.singleton) return null;
-    return (record.account as unknown as SingletonAccountStub).getSingletonGatekeeperClass();
+    return (record.account as unknown as SingletonAccountStub).getSingletonGatekeeperClass({
+      isAdmin: userIsAdmin(this.env, this.ctx.id.name),
+    });
   }
 
   /**

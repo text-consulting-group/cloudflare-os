@@ -657,9 +657,11 @@ export interface GatekeeperUser extends WorkerEntrypoint {
    * authorized as an observation via the ApprovalQueue, exactly like any gatekeeper.
    *
    * The returned class is imbued (via `ctx.props`) with whatever the account needs to serve the
-   * singleton (e.g. the account id and sharing domain).
+   * singleton (e.g. the account id and sharing domain). `options.isAdmin` is the Workshop's current
+   * admin check for this user; gatekeepers that scope shared data by role (e.g. Context public
+   * collections) use it to decide what the singleton exposes.
    */
-  getSingletonGatekeeperClass?(): Promise<DurableObjectClass<Gatekeeper<any>>>;
+  getSingletonGatekeeperClass?(options?: { isAdmin?: boolean }): Promise<DurableObjectClass<Gatekeeper<any>>>;
 
   /**
    * The account's full-page management UI (iframe HTML + ui capability). `context.isAdmin` is passed

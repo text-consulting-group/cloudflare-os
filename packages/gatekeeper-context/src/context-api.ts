@@ -12,46 +12,21 @@ import type { ContextCollectionDurableObject } from "./context-collection.js";
 import type { UserLibraryDurableObject } from "./user-library.js";
 import type { LibraryRegistryDurableObject } from "./registry-do.js";
 import {
-  listPublicCollectionsFromKv, metadataToSummary,
+  listPublicCollectionsFromKv, mergeEnabledCollections, metadataToSummary,
 } from "./collection-kv.js";
 import { domainName } from "./domain.js";
 
-/** Collections visible to this account's agents. */
+/** Collections visible to this account's agents. Public collections require deployment admin. */
 export async function loadEnabledContextCollections(
     env: Pick<Cloudflare.Env, "CONTEXT_COLLECTIONS">,
     domain: string,
-    userLibrary: DurableObjectStub<UserLibraryDurableObject>): Promise<EnabledCollectionInfo[]> {
+    userLibrary: DurableObjectStub<UserLibraryDurableObject>,
+    isAdmin: boolean): Promise<EnabledCollectionInfo[]> {
   let [owned, publicCollections] = await Promise.all([
     userLibrary.listOwnedCollections(),
-    listPublicCollectionsFromKv(env, domain),
+    isAdmin ? listPublicCollectionsFromKv(env, domain) : Promise.resolve([]),
   ]);
-
-  let result: EnabledCollectionInfo[] = [];
-  let seen = new Set<string>();
-  for (let collection of owned) {
-    seen.add(collection.id);
-    result.push({
-      id: collection.id,
-      title: collection.title,
-      description: collection.description,
-      icon: collection.icon,
-      source: "private",
-      lastUpdated: collection.lastUpdated,
-    });
-  }
-  for (let collection of publicCollections) {
-    if (seen.has(collection.id)) continue;
-    seen.add(collection.id);
-    result.push({
-      id: collection.id,
-      title: collection.title,
-      description: collection.description,
-      icon: collection.icon,
-      source: "public",
-      lastUpdated: collection.lastUpdated,
-    });
-  }
-  return result;
+  return mergeEnabledCollections(owned, publicCollections, isAdmin);
 }
 
 @validateRpc()
@@ -85,13 +60,13 @@ export class ContextApiImpl extends RpcTarget implements ContextApi {
     return this.#userLib().hasOwned(collectionId);
   }
 
-  // Read: own private collections or any public collection.
+  // Read: own private collections, or public collections for admins.
   async #assertCanRead(collectionId: string): Promise<void> {
     let [owns, isPublic] = await Promise.all([
       this.#ownsPrivate(collectionId),
       this.#registry().isPublic(collectionId),
     ]);
-    if (!owns && !isPublic) {
+    if (!owns && !(isPublic && this.isAdmin)) {
       throw new Error("Collection not found or you don't have access.");
     }
   }
@@ -258,7 +233,7 @@ export class ContextApiImpl extends RpcTarget implements ContextApi {
   // --- Listing & access ---
 
   async listEnabledContextCollections(): Promise<EnabledCollectionInfo[]> {
-    return loadEnabledContextCollections(this.env, this.domain, this.#userLib());
+    return loadEnabledContextCollections(this.env, this.domain, this.#userLib(), this.isAdmin);
   }
 
   async canWriteContextCollection(collectionId: string): Promise<boolean> {

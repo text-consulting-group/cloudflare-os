@@ -128,6 +128,11 @@ export class ContextAccount
   #userLibraries() { return this.ctx.exports.UserLibraryDurableObject; }
   #registries() { return this.ctx.exports.LibraryRegistryDurableObject; }
 
+  #userLib() {
+    return this.#userLibraries().get(
+      this.#userLibraries().idFromName(domainName(this.ctx.props.sharingDomain, this.ctx.props.accountId)));
+  }
+
   async describe(): Promise<AccountDescription> {
     return {
       displayName: "Context",
@@ -137,8 +142,13 @@ export class ContextAccount
     };
   }
 
-  /** Return the gadget-side read-path class, scoped by this account's props. */
-  async getSingletonGatekeeperClass(): Promise<DurableObjectClass<Gatekeeper<any>>> {
+  /**
+   * Return the gadget-side read-path class, scoped by this account's props.
+   * `options.isAdmin` is the workshop's current admin check for this user; it is recorded so
+   * public collections are only enabled for deployment admins.
+   */
+  async getSingletonGatekeeperClass(options?: { isAdmin?: boolean }): Promise<DurableObjectClass<Gatekeeper<any>>> {
+    await this.#userLib().setViewerIsAdmin(options?.isAdmin === true);
     return this.ctx.exports.ContextGatekeeper({
       props: { sharingDomain: this.ctx.props.sharingDomain, accountId: this.ctx.props.accountId },
     });
@@ -146,6 +156,7 @@ export class ContextAccount
 
   async startAppUi(context: AppUiContext): Promise<GatekeeperUiFrame> {
     // Hand the iframe its per-user UI capability. isAdmin is supplied fresh per open.
+    await this.#userLib().setViewerIsAdmin(context.isAdmin);
     let ui = new RpcStub(new ContextApiImpl(
       this.env, this.ctx.props.sharingDomain, this.ctx.props.accountId, context.isAdmin,
       this.#collections(), this.#userLibraries(), this.#registries()));
@@ -205,12 +216,14 @@ export class ContextVerifier
     if (sharingDomain !== this.ctx.props.sharingDomain) return false;
     let userLibraries = this.ctx.exports.UserLibraryDurableObject;
     let registries = this.ctx.exports.LibraryRegistryDurableObject;
-    let [owns, isPublic] = await Promise.all([
-      userLibraries.get(userLibraries.idFromName(
-        domainName(sharingDomain, this.ctx.props.accountId))).hasOwned(collectionId),
+    let userLib = userLibraries.get(userLibraries.idFromName(
+      domainName(sharingDomain, this.ctx.props.accountId)));
+    let [owns, isPublic, isAdmin] = await Promise.all([
+      userLib.hasOwned(collectionId),
       registries.getByName(sharingDomain).isPublic(collectionId),
+      userLib.getViewerIsAdmin(),
     ]);
-    return owns || isPublic;
+    return owns || (isPublic && isAdmin);
   }
 }
 
@@ -296,7 +309,8 @@ export class ContextGatekeeper
     let domain = this.ctx.props.sharingDomain;
     let userLibrary = this.#userLibraries().get(
         this.#userLibraries().idFromName(domainName(domain, this.ctx.props.accountId)));
-    let collections = (await loadEnabledContextCollections(this.env, domain, userLibrary))
+    let isAdmin = await userLibrary.getViewerIsAdmin();
+    let collections = (await loadEnabledContextCollections(this.env, domain, userLibrary, isAdmin))
         .toSorted((left, right) =>
           left.title.localeCompare(right.title) || left.id.localeCompare(right.id));
     return buildAgentSkillCommands(await this.#loadSkills(collections));
@@ -320,7 +334,8 @@ export class ContextGatekeeper
     let domain = this.ctx.props.sharingDomain;
     let userLibrary = this.#userLibraries().get(
       this.#userLibraries().idFromName(domainName(domain, this.ctx.props.accountId)));
-    let collections = await loadEnabledContextCollections(this.env, domain, userLibrary);
+    let isAdmin = await userLibrary.getViewerIsAdmin();
+    let collections = await loadEnabledContextCollections(this.env, domain, userLibrary, isAdmin);
     let catalog = buildContextCatalog(collections, await this.#loadSkills(collections));
     if (catalog.entries.length > 0) {
       let collectionIds = [...new Set(catalog.entries.map(entry => {

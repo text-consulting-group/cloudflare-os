@@ -20,7 +20,9 @@ function makeUserLibraryStorage(storage: DurableObjectStorage) {
     collections: {
       ownedCollections: collection<OwnedRecord>()({ primaryKey: "id" }),
     },
-    singletons: {},
+    // Whether the workshop user behind this account is a deployment admin. Synced on UI open and
+    // singleton minting; public collections are withheld from non-admins (fail closed).
+    singletons: { viewerIsAdmin: false as boolean },
   });
 }
 
@@ -75,15 +77,26 @@ export class UserLibraryDurableObject extends DurableObject<Cloudflare.Env> {
     return result;
   }
 
-  // --- Enabled set (own private + every public collection) ---
+  // --- Viewer admin flag (controls whether public collections are enabled) ---
+
+  setViewerIsAdmin(isAdmin: boolean): void {
+    this.storage.viewerIsAdmin.put(isAdmin);
+  }
+
+  getViewerIsAdmin(): boolean {
+    return this.storage.viewerIsAdmin.get();
+  }
+
+  // --- Enabled set (own private + public collections when the viewer is an admin) ---
 
   /**
    * Enabled collection visibility for the agent read path. Owned wins on overlap so private is never
-   * downgraded to public.
+   * downgraded to public. Public collections are included only for deployment admins.
    */
   async getEnabledCollections(domain: string): Promise<Map<string, ContextCollectionVisibility>> {
     let result = new Map<string, ContextCollectionVisibility>();
     for (let record of this.storage.ownedCollections.list()) result.set(record.id, "private");
+    if (!this.getViewerIsAdmin()) return result;
     for (let entry of await listPublicCollectionsFromKv(this.env, domain)) {
       if (!result.has(entry.id)) result.set(entry.id, "public");
     }

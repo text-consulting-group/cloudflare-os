@@ -1,7 +1,34 @@
 // KV helpers for the per-domain public-collections snapshot. The registry DO is the only writer;
 // user sessions read it when building their enabled collection set.
 
-import { ContextCollectionMetadata, ContextCollectionSummary } from "./context-types.js";
+import { ContextCollectionMetadata, ContextCollectionSummary, EnabledCollectionInfo } from "./context-types.js";
+
+/** Merge owned and public collections for one viewer. Public entries are admin-only. */
+export function mergeEnabledCollections(
+    owned: { id: string; title: string; description: string; icon?: string; lastUpdated: Date }[],
+    publicCollections: ContextCollectionSummary[],
+    isAdmin: boolean): EnabledCollectionInfo[] {
+  let result: EnabledCollectionInfo[] = [];
+  let seen = new Set<string>();
+  for (let collection of owned) {
+    seen.add(collection.id);
+    result.push({ ...collection, source: "private" });
+  }
+  if (!isAdmin) return result;
+  for (let collection of publicCollections) {
+    if (seen.has(collection.id)) continue;
+    seen.add(collection.id);
+    result.push({
+      id: collection.id,
+      title: collection.title,
+      description: collection.description,
+      icon: collection.icon,
+      source: "public",
+      lastUpdated: collection.lastUpdated,
+    });
+  }
+  return result;
+}
 
 // Namespaces sharing domains; NUL never appears in configured domains.
 const KV_SEP = "\u0000";
