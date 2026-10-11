@@ -123,6 +123,7 @@ import OutOfCreditsModal from "./components/billing/OutOfCreditsModal";
 import { useSlashCommandPicker } from "./components/chat/SlashCommandPicker";
 import { formatFullTimestamp } from "./utils/formatTimestamp";
 import { copyToClipboard } from "./clipboard";
+import { useLocale } from './LocaleContext';
 import {
   composerDraftStorageKey,
   decorateComposerDraft,
@@ -1817,6 +1818,7 @@ export const ChatInput = ({
   showThinkingTraces = true,
   onToggleThinkingTraces,
 }: {
+  const { t } = useLocale();
   createCapsuleGatekeeper: (
     accountId: number,
     url: string,
@@ -3352,7 +3354,7 @@ export const ChatInput = ({
                   : isAgentActive
                     ? "Waiting for agent…"
                     : newChat
-                      ? "Start a new conversation…"
+                      ? t.startConversation
                       : "Ask a follow-up…"
               }
               autoFocus={autoFocus}
