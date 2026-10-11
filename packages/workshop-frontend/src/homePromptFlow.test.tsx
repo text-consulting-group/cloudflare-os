@@ -53,6 +53,7 @@ vi.mock("./components/AppShell/HomeTaskSuggestions", () => ({ default: () => nul
 vi.mock("./useDocumentTitle", () => ({ useDocumentTitle: () => {} }));
 
 import { HomePageContent } from "./routes/index";
+import { LocaleProvider } from "./LocaleContext";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -73,7 +74,11 @@ describe("Home prompt route flow", () => {
     container = document.createElement("div");
     document.body.append(container);
     root = createRoot(container);
-    await act(async () => root!.render(<HomePageContent prompt="Create a daily brief." />));
+    await act(async () => root!.render(
+      <LocaleProvider>
+        <HomePageContent prompt="Create a daily brief." />
+      </LocaleProvider>,
+    ));
 
     expect(container.querySelector<HTMLTextAreaElement>('[aria-label="Prompt"]')?.value).toBe(
       "Create a daily brief.",

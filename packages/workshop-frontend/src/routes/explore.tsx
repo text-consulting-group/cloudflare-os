@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import BlueprintsPage from '../BlueprintsPage'
+import { useLocale } from '../LocaleContext'
 import { useDocumentTitle } from '../useDocumentTitle'
 
 export const Route = createFileRoute('/explore')({
@@ -7,7 +8,8 @@ export const Route = createFileRoute('/explore')({
 })
 
 function ExplorePage() {
-  useDocumentTitle('Explore')
+  const { t } = useLocale()
+  useDocumentTitle(t.explore)
 
   return <BlueprintsPage />
 }

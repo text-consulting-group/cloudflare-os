@@ -18,6 +18,7 @@ import {
 } from '@phosphor-icons/react'
 import { OutputSummary } from '@gadgets/workshop-shared/api'
 import { useAuthenticatedApi } from '../AuthContext'
+import { useLocale } from '../LocaleContext'
 import { useDocumentTitle } from '../useDocumentTitle'
 import ViewToggle from '../components/ViewToggle'
 import { MENU_CONTENT, MENU_ITEM, MENU_POSITIONER_STYLE } from '../components/menuStyles'
@@ -388,7 +389,8 @@ function RenameOutputDialog({
 type TypeFilter = 'all' | string
 
 function OutputsPage() {
-  useDocumentTitle('Outputs')
+  const { t } = useLocale()
+  useDocumentTitle(t.outputs)
   const { authenticatedApi } = useAuthenticatedApi()
   const navigate = useNavigate()
   const toasts = useKumoToastManager()
@@ -576,9 +578,9 @@ function OutputsPage() {
     <div className="mx-auto flex h-full w-full max-w-5xl flex-col px-6 sm:px-10">
       <header className="flex items-end justify-between gap-4 px-3 pb-4 pt-10">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-kumo-default">Outputs</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-kumo-default">{t.outputs}</h1>
           <p className="mt-1 text-[13px] leading-[18px] tracking-[-0.25px] text-kumo-subtle">
-            Everything your workspaces have produced, in one place.
+            {t.outputsDescription}
           </p>
         </div>
         <ViewToggle view={view} onChange={setView} />

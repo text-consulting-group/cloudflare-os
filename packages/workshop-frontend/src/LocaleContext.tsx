@@ -9,7 +9,10 @@ export type Messages = {
   workspaces: string
   blueprints: string
   outputs: string
+  outputsDescription: string
   explore: string
+  exploreDescription: string
+  featured: string
   providers: string
   profile: string
   admin: string
@@ -55,7 +58,7 @@ export type Messages = {
 
 const messages: Record<Locale, Messages> = {
   en: {
-    home: 'Home', workspaces: 'Workspaces', blueprints: 'Blueprints', outputs: 'Outputs', explore: 'Explore',
+    home: 'Home', workspaces: 'Workspaces', blueprints: 'Blueprints', outputs: 'Outputs', outputsDescription: 'Everything your workspaces have produced, in one place.', explore: 'Explore', exploreDescription: 'Discover featured blueprints to use as starting points. Open one to create a workspace from it, or save it to reuse later.', featured: 'Featured',
     providers: 'Providers', profile: 'Profile', admin: 'Admin', signOut: 'Sign out', language: 'Language',
     search: 'Search', systemPaths: 'System Paths', login: 'Sign in', signup: 'Create account', username: 'Username', password: 'Password',
     workspaceDescription: 'Each workspace is an isolated environment with its own conversations, gatekeepers, and outputs.',
@@ -69,7 +72,7 @@ const messages: Record<Locale, Messages> = {
     },
   },
   vi: {
-    home: 'Trang chủ', workspaces: 'Không gian làm việc', blueprints: 'Bản thiết kế', outputs: 'Kết quả', explore: 'Khám phá',
+    home: 'Trang chủ', workspaces: 'Không gian làm việc', blueprints: 'Bản thiết kế', outputs: 'Kết quả', outputsDescription: 'Tất cả kết quả do không gian làm việc tạo ra, tập trung tại một nơi.', explore: 'Khám phá', exploreDescription: 'Khám phá các bản thiết kế nổi bật để dùng làm điểm khởi đầu. Mở một bản để tạo không gian làm việc hoặc lưu lại để dùng sau.', featured: 'Nổi bật',
     providers: 'Nhà cung cấp', profile: 'Hồ sơ', admin: 'Quản trị', signOut: 'Đăng xuất', language: 'Ngôn ngữ',
     search: 'Tìm kiếm', systemPaths: 'Đường dẫn hệ thống', login: 'Đăng nhập', signup: 'Tạo tài khoản', username: 'Tên người dùng', password: 'Mật khẩu',
     workspaceDescription: 'Mỗi không gian làm việc là một môi trường riêng với các cuộc trò chuyện, trình kết nối và kết quả của riêng mình.',
@@ -83,7 +86,7 @@ const messages: Record<Locale, Messages> = {
     },
   },
   ko: {
-    home: '홈', workspaces: '워크스페이스', blueprints: '청사진', outputs: '결과물', explore: '탐색',
+    home: '홈', workspaces: '워크스페이스', blueprints: '청사진', outputs: '결과물', outputsDescription: '워크스페이스에서 만든 모든 결과물을 한곳에서 확인하세요.', explore: '탐색', exploreDescription: '시작점으로 사용할 추천 청사진을 찾아보세요. 청사진을 열어 워크스페이스를 만들거나 나중에 다시 사용할 수 있도록 저장하세요.', featured: '추천',
     providers: '제공자', profile: '프로필', admin: '관리자', signOut: '로그아웃', language: '언어',
     search: '검색', systemPaths: '시스템 경로', login: '로그인', signup: '계정 만들기', username: '사용자 이름', password: '비밀번호',
     workspaceDescription: '각 워크스페이스는 대화, 게이트키퍼, 결과물을 독립적으로 관리하는 환경입니다.',
