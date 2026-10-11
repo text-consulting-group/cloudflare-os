@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useLocale } from '../../LocaleContext'
+import { useLocale, type Messages } from '../../LocaleContext'
 import {
   AppWindow,
   ChartLineUp,
@@ -22,48 +22,51 @@ type TaskSuggestion = {
 
 // Formats are advertised by example rather than by a row of "Start with Docs" buttons, so the
 // first move isn't "pick a file type". The formats themselves are in the composer's `+` menu.
-function buildSuggestions(t: { homeTitle: string }): TaskSuggestion[] { return [
-  {
-    id: 'one-on-one',
-    label: t.homeTitle === '오늘은 무엇을 만들까요?' ? '1:1 사전 자료' : 'Write a 1:1 pre-read',
-    description: t.homeTitle === '오늘은 무엇을 만들까요?' ? '현황·점검·요청을 담은 문서' : 'A doc with a snapshot, things to inspect, and one ask',
-    icon: FileText,
-    prompt:
-      'Create a document to prepare for my next 1:1 with a direct report: a current snapshot, a coaching frame, things to inspect, carryover items from last time, and one clear ask.',
-  },
-  {
-    id: 'team-meeting',
-    label: t.homeTitle === '오늘은 무엇을 만들까요?' ? '팀 회의 자료 만들기' : 'Build a team meeting deck',
-    description: t.homeTitle === '오늘은 무엇을 만들까요?' ? '진행·리스크·결정 사항 슬라이드' : 'Slides with progress, risks, and what needs a decision',
-    icon: Presentation,
-    prompt:
-      'Create a slide deck for my next team meeting: where things stand, what shipped, risks and blockers, and the decisions I need from the room. Ask me what the team is working on first.',
-  },
-  {
-    id: 'insights',
-    label: t.homeTitle === '오늘은 무엇을 만들까요?' ? '데이터에서 인사이트 찾기' : 'Find insights in my data',
-    description: t.homeTitle === '오늘은 무엇을 만들까요?' ? '스프레드시트를 트렌드·제안으로' : 'Turn a spreadsheet or CSV into trends and recommendations',
-    icon: ChartLineUp,
-    prompt:
-      'Turn a dataset I will share (a spreadsheet, CSV, or pasted table) into a narrative analysis: key trends, anomalies, the "so what", and concrete recommendations.',
-  },
-  {
-    id: 'workflow',
-    label: t.homeTitle === '오늘은 무엇을 만들까요?' ? '워크플로 자동화' : 'Automate a workflow',
-    description: t.homeTitle === '오늘은 무엇을 만들까요?' ? '새 메일 수신 시 에이전트 실행' : 'Trigger an agent when a new email arrives',
-    icon: Lightning,
-    prompt:
-      'Create an agent workflow that runs automatically when a new email arrives: read the message, decide what to do, and take action or draft a reply. Ask me which inbox to watch and what it should handle.',
-  },
-  {
-    id: 'app',
-    label: t.homeTitle === '오늘은 무엇을 만들까요?' ? '간단한 도구 만들기' : 'Build a quick tool',
-    description: t.homeTitle === '오늘은 무엇을 만들까요?' ? '인터랙티브 앱·계산기·대시보드' : 'A small interactive app, calculator, or dashboard',
-    icon: AppWindow,
-    prompt:
-      'Build a small interactive tool I can use right here — a calculator, dashboard, or explorer. Ask me what it should do, then create it.',
-  },
-]
+// Labels/descriptions are localized; the starter prompt stays English so the agent gets a stable instruction.
+function buildSuggestions(t: Messages): TaskSuggestion[] {
+  const s = t.taskSuggestions
+  return [
+    {
+      id: 'one-on-one',
+      label: s.oneOnOne.label,
+      description: s.oneOnOne.description,
+      icon: FileText,
+      prompt:
+        'Create a document to prepare for my next 1:1 with a direct report: a current snapshot, a coaching frame, things to inspect, carryover items from last time, and one clear ask.',
+    },
+    {
+      id: 'team-meeting',
+      label: s.teamMeeting.label,
+      description: s.teamMeeting.description,
+      icon: Presentation,
+      prompt:
+        'Create a slide deck for my next team meeting: where things stand, what shipped, risks and blockers, and the decisions I need from the room. Ask me what the team is working on first.',
+    },
+    {
+      id: 'insights',
+      label: s.insights.label,
+      description: s.insights.description,
+      icon: ChartLineUp,
+      prompt:
+        'Turn a dataset I will share (a spreadsheet, CSV, or pasted table) into a narrative analysis: key trends, anomalies, the "so what", and concrete recommendations.',
+    },
+    {
+      id: 'workflow',
+      label: s.workflow.label,
+      description: s.workflow.description,
+      icon: Lightning,
+      prompt:
+        'Create an agent workflow that runs automatically when a new email arrives: read the message, decide what to do, and take action or draft a reply. Ask me which inbox to watch and what it should handle.',
+    },
+    {
+      id: 'app',
+      label: s.app.label,
+      description: s.app.description,
+      icon: AppWindow,
+      prompt:
+        'Build a small interactive tool I can use right here — a calculator, dashboard, or explorer. Ask me what it should do, then create it.',
+    },
+  ]
 }
 
 // One row, shared by every suggestion so the list reads as one kind of offer.
@@ -106,9 +109,8 @@ function SuggestionRow({
 // ones below the fold still get seen -- and so Home doesn't look like it only does one thing.
 const VISIBLE_SUGGESTIONS = 3
 
-function pickSuggestions(): TaskSuggestion[] {
-  const { t } = useLocale();
-  let shuffled = [...buildSuggestions(t)]
+function pickSuggestions(all: TaskSuggestion[]): TaskSuggestion[] {
+  let shuffled = [...all]
   for (let i = shuffled.length - 1; i > 0; i--) {
     let j = Math.floor(Math.random() * (i + 1))
     ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
@@ -123,7 +125,7 @@ export default function HomeTaskSuggestions({
 }) {
   const { t } = useLocale();
   // Chosen once per mount: re-rolling on every render would shuffle the list under the pointer.
-  const visible = useMemo(pickSuggestions, [])
+  const visible = useMemo(() => pickSuggestions(buildSuggestions(t)), [t])
 
   return (
     <section aria-label="Example tasks" className="flex flex-col gap-1">
