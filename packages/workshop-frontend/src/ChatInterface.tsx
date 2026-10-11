@@ -1818,7 +1818,6 @@ export const ChatInput = ({
   showThinkingTraces = true,
   onToggleThinkingTraces,
 }: {
-  const { t } = useLocale();
   createCapsuleGatekeeper: (
     accountId: number,
     url: string,
@@ -1876,6 +1875,7 @@ export const ChatInput = ({
   /** Called after a gatekeeper is connected via the attach flow, so the parent can refresh the
    * pre-approval catalog and proactively offer to pre-approve its actions. */
 }) => {
+  const { t } = useLocale();
   const toasts = useKumoToastManager();
   const [initialDraft] = useState(() => readComposerDraft(draftStorageKey));
   const [inputValue, setInputValue] = useState(() => initialDraft?.text ?? "");
