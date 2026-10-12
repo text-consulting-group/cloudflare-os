@@ -216,14 +216,15 @@ export class ContextVerifier
     if (sharingDomain !== this.ctx.props.sharingDomain) return false;
     let userLibraries = this.ctx.exports.UserLibraryDurableObject;
     let registries = this.ctx.exports.LibraryRegistryDurableObject;
-    let userLib = userLibraries.get(userLibraries.idFromName(
-      domainName(sharingDomain, this.ctx.props.accountId)));
-    let [owns, isPublic, isAdmin] = await Promise.all([
-      userLib.hasOwned(collectionId),
+    let [owns, isPublic] = await Promise.all([
+      userLibraries.get(userLibraries.idFromName(
+        domainName(sharingDomain, this.ctx.props.accountId))).hasOwned(collectionId),
       registries.getByName(sharingDomain).isPublic(collectionId),
-      userLib.getViewerIsAdmin(),
     ]);
-    return owns || (isPublic && isAdmin);
+    // Observer checks answer "may this collaborator see workspace activity derived from this
+    // collection?" Public collections are org-shared, so any account in the domain may observe.
+    // Agent search/list/read stays admin-only for public (see getEnabledCollections).
+    return owns || isPublic;
   }
 }
 
