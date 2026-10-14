@@ -128,6 +128,27 @@ describe("ContextObserverTracker", () => {
     expect(calls).toEqual(["old", "new"]);
   });
 
+  it("same-sharingDomain verifier never excludes observers (cfb5b832)", async () => {
+    // ContextVerifier.hasCollectionAccess returns sharingDomain === props.sharingDomain.
+    // Same-domain collaborators therefore always pass, so observations never set
+    // excludeObservers and overseer #enforceExcludeObservers cannot block the read.
+    let domain = "office.tcgc.uk";
+    let tracker = new ContextObserverTracker(makeKv(), domain);
+    let sameDomain = {
+      async hasCollectionAccess(sharingDomain: string) {
+        return sharingDomain === domain;
+      },
+    } as unknown as Fetcher<ContextVerifierApi>;
+    await tracker.addObserver("collaborator", sameDomain);
+
+    let first = await tracker.prepareObservation(["yctour-regions", "deleted-collection"]);
+    expect(first.excludeObservers).toBeUndefined();
+    first.commit();
+
+    let retry = await tracker.prepareObservation(["yctour-guidelines"]);
+    expect(retry.excludeObservers).toBeUndefined();
+  });
+
   it("handles concurrent mixed collection attempts and legacy markers", async () => {
     let kv = makeKv();
     kv.put("observedCollection:legacy", true);
