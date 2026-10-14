@@ -213,18 +213,15 @@ export class ContextVerifier
     extends WorkerEntrypoint<Cloudflare.Env, ContextAccountProps>
     implements ContextVerifierApi {
   async hasCollectionAccess(sharingDomain: string, collectionId: string): Promise<boolean> {
-    if (sharingDomain !== this.ctx.props.sharingDomain) return false;
-    let userLibraries = this.ctx.exports.UserLibraryDurableObject;
-    let registries = this.ctx.exports.LibraryRegistryDurableObject;
-    let [owns, isPublic] = await Promise.all([
-      userLibraries.get(userLibraries.idFromName(
-        domainName(sharingDomain, this.ctx.props.accountId))).hasOwned(collectionId),
-      registries.getByName(sharingDomain).isPublic(collectionId),
-    ]);
     // Observer checks answer "may this collaborator see workspace activity derived from this
-    // collection?" Public collections are org-shared, so any account in the domain may observe.
-    // Agent search/list/read stays admin-only for public (see getEnabledCollections).
-    return owns || isPublic;
+    // collection?" Workspace membership is the trust boundary for that activity: sharing the
+    // workspace already exposes its chats and outputs. Collection ACLs still gate the agent
+    // search/list/read path (see getEnabledCollections) — not collaborator observe.
+    //
+    // Denying observe on private or deleted collections permanently locks collaborators out of
+    // workspaces that once read them, including after the collection is gone (orphaned
+    // observation records). Team workspaces need collaborators to open shared workspaces.
+    return sharingDomain === this.ctx.props.sharingDomain;
   }
 }
 
