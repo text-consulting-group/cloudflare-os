@@ -124,6 +124,15 @@ function isFullyCreated(g: GadgetRecord): g is GadgetMetadataWithTimestamps {
 }
 
 /**
+ * True for OpenAI GPT catalog leftovers (gpt-6-*, gpt-5.*, ...) that this deployment cannot
+ * serve. Matches the model id or the provider config's model name so renamed display entries
+ * still get cleaned up.
+ */
+function isRetiredGptModel(name: string): boolean {
+  return /^gpt-/i.test(name);
+}
+
+/**
  * One output of a workspace, as pushed into a user's output index by the Overseer that owns it
  * (see `syncWorkspaceOutputs()`). Carries only what the workspace itself knows: its title,
  * activity time and ownership are joined in from the `gadgets` collection on read, so they can't
@@ -353,31 +362,53 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
       return true;
     }
 
+    // Existing accounts also get the org default models (idempotent migration).
+    this.#seedDefaultModels();
     return false;
   }
 
   /**
-   * Pre-populate the model picker for a brand-new account from deployment env vars.
-   * Uses the same QUICK_MODEL_* endpoint that already drives title generation, so a new
-   * user sees the org's default model without configuring it by hand. Idempotent: the
-   * record is only written when the id is not already present.
+   * Pre-populate the model picker from deployment env vars (QUICK_MODEL_* endpoint).
+   * Idempotent: each record is only written when the id is not already present, so this
+   * doubles as the lazy migration for accounts created before both MiMo tiers shipped.
+   * Seeds both MiMo tiers so the picker offers pro (default/preferred) and flash from
+   * the start; preferredModel is only set when the user has not chosen one.
+   *
+   * Also drops leftover GPT catalog registrations (e.g. gpt-6-lunar, gpt-5.6-*) that
+   * this deployment has no credentials for — only the org MiMo endpoint is usable here.
    */
   #seedDefaultModels(): void {
+    // Remove unusable GPT entries saved while those catalog items still existed.
+    for (const record of this.storage.aiModels.list()) {
+      if (isRetiredGptModel(record.profile.id) || isRetiredGptModel(record.config.model)) {
+        this.storage.aiModels.delete(record.profile.id);
+      }
+    }
+    const preferred = this.storage.preferredModel.get();
+    if (preferred && !this.storage.aiModels.get(preferred)) {
+      this.storage.preferredModel.put(null);
+    }
+
     const apiUrl = this.env.QUICK_MODEL_API_URL;
     if (!apiUrl) return;
-    const model = this.env.QUICK_MODEL_ID ?? "mimo-v2.6-pro";
-    if (this.storage.aiModels.get(model)) return;
-    this.storage.aiModels.put({
-      profile: { type: "agent", id: model, name: model },
-      config: {
-        provider: "openai",
-        model,
-        apiToken: this.env.QUICK_MODEL_API_TOKEN ?? "",
-        apiUrl,
-      },
-    });
+    const apiToken = this.env.QUICK_MODEL_API_TOKEN ?? "";
+    const defaultModel = this.env.QUICK_MODEL_ID ?? "mimo-v2.6-pro";
+    // Both MiMo tiers share the org endpoint; flash is the lighter alternate.
+    const models = new Set([defaultModel, "mimo-v2.6-pro", "mimo-v2.6-flash"]);
+    for (const model of models) {
+      if (this.storage.aiModels.get(model)) continue;
+      this.storage.aiModels.put({
+        profile: { type: "agent", id: model, name: model },
+        config: {
+          provider: "openai",
+          model,
+          apiToken,
+          apiUrl,
+        },
+      });
+    }
     if (!this.storage.preferredModel.get()) {
-      this.storage.preferredModel.put(model);
+      this.storage.preferredModel.put(defaultModel);
     }
   }
 
@@ -436,6 +467,7 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
     let passwordHashHash = new Uint8Array(await crypto.subtle.digest('SHA-256', passwordHash));
     this.storage.passwordHashHash.put(passwordHashHash);
 
+    this.#seedDefaultModels();
     return this.#newSessionToken();
   }
 
@@ -462,6 +494,10 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
         name: email.split("@")[0],
         id: email,
       });
+      this.#seedDefaultModels();
+    } else {
+      // Existing accounts also get the org default models (idempotent migration).
+      this.#seedDefaultModels();
     }
     return this.#newSessionToken();
   }
@@ -566,6 +602,9 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
   }
 
   async listModels(): Promise<AiChatAuthorInfo[]> {
+    // Idempotent migration: existing accounts pick up org default models and drop GPT leftovers.
+    this.#seedDefaultModels();
+
     let result: AiChatAuthorInfo[] = [];
 
     // When AI Gateway mode is active, include all suggested models for enabled providers.
