@@ -31,12 +31,18 @@ import { createWorkshopLogger } from "./observability";
 import { wrapDoStubForTelemetry } from "./do-telemetry";
 import { listIssueStatsSnapshots, getIssueStatsSnapshot } from "./issue-stats.js";
 import {
-  listInsightCards,
-  getInsightCard,
-  createInsightCard,
-  setInsightCardStatus,
+  listInsightCards as listInsightCardsD1,
+  getInsightCard as getInsightCardD1,
+  createInsightCard as createInsightCardD1,
+  setInsightCardStatus as setInsightCardStatusD1,
 } from "./insights.js";
-import type { InsightCard, InsightCardInput, InsightStatus } from "@gadgets/workshop-shared/api";
+import { InsightTrackerDurableObject } from "./insights-do.js";
+import type {
+  InsightCard,
+  InsightCardInput,
+  InsightStatus,
+  InsightSubscriber,
+} from "@gadgets/workshop-shared/api";
 
 const logger = createWorkshopLogger("workshop.server");
 
@@ -60,6 +66,9 @@ export { AdminSettings };
 
 // Re-export entrypoint types from user.ts.
 export { UserDurableObject, GatekeeperConnectCallbackImpl };
+
+// Insight Tracker live co-editing store.
+export { InsightTrackerDurableObject };
 
 // Re-export entrypoint types from overseer.ts.
 export { OverseerDurableObject, GatekeeperLoopback, GatekeeperHookLoopback,
@@ -91,11 +100,17 @@ class AuthenticatedApiImpl extends RpcTarget implements AuthenticatedApi {
     this.overseers = this.ctx.exports.OverseerDurableObject;
     this.adminSettings = this.ctx.exports.AdminSettings;
     this.users = this.ctx.exports.UserDurableObject;
+    this.insights = this.ctx.exports.InsightTrackerDurableObject;
   }
 
   private overseers: DurableObjectNamespace<OverseerDurableObject>;
   private adminSettings: DurableObjectNamespace<AdminSettings>;
   private users: DurableObjectNamespace<UserDurableObject>;
+  private insights: DurableObjectNamespace<InsightTrackerDurableObject>;
+
+  #insightStore(): DurableObjectStub<InsightTrackerDurableObject> {
+    return this.insights.getByName("insights");
+  }
 
   #userId: DurableObjectId;
 
@@ -320,19 +335,23 @@ class AuthenticatedApiImpl extends RpcTarget implements AuthenticatedApi {
   }
 
   listInsightCards(status?: InsightStatus): Promise<InsightCard[]> {
-    return listInsightCards(this.env, status);
+    return this.#insightStore().listInsightCards(status);
   }
 
   getInsightCard(cardId: string): Promise<InsightCard | null> {
-    return getInsightCard(this.env, cardId);
+    return this.#insightStore().getInsightCard(cardId);
   }
 
   createInsightCard(input: InsightCardInput): Promise<InsightCard> {
-    return createInsightCard(this.env, input);
+    return this.#insightStore().createInsightCard(input);
   }
 
   setInsightCardStatus(cardId: string, status: InsightStatus): Promise<InsightCard | null> {
-    return setInsightCardStatus(this.env, cardId, status);
+    return this.#insightStore().setInsightCardStatus(cardId, status);
+  }
+
+  subscribeInsightCards(subscriber: InsightSubscriber): Promise<RpcStub<{}>> {
+    return this.#insightStore().subscribeInsightCards(subscriber as RpcStub<InsightSubscriber>);
   }
 
   async listOutputFormats(): Promise<OutputFormatOffer[]> {

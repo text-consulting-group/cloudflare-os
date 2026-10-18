@@ -52,10 +52,15 @@
       "new_sqlite_classes": [ "AdminSettings" ]
     },
     {
+      "tag": "v2",
       // Sign-in via authentication gatekeepers: a short-lived PendingLogin DO bridges each gatekeeper
       // login back to the waiting browser.
-      "tag": "v2",
       "new_sqlite_classes": [ "PendingLogin" ]
+    },
+    {
+      "tag": "v3",
+      // Insight Tracker live co-editing store (cards + subscriber broadcast).
+      "new_sqlite_classes": [ "InsightTrackerDurableObject" ]
     }
   ],
 

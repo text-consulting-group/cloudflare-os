@@ -6,6 +6,7 @@ import {
   Plus,
   Spinner,
 } from '@phosphor-icons/react'
+import { RpcTarget } from 'capnweb'
 import type { InsightCard, InsightStatus } from '@gadgets/workshop-shared/api'
 import { useAuthenticatedApi } from '../AuthContext'
 import { useLocale } from '../LocaleContext'
@@ -54,10 +55,28 @@ function InsightsPage() {
       .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
   }
 
+  // Live co-editing: full list on subscribe and on every mutation (any session).
   useEffect(() => {
-    reload()
+    let cancelled = false
+    class InsightSubscriberImpl extends RpcTarget {
+      onInsightCardsChanged(next: InsightCard[]) {
+        if (cancelled) return
+        setCards(next)
+      }
+    }
+    const subscriber = new InsightSubscriberImpl()
+    const subscription = authenticatedApi.subscribeInsightCards(subscriber)
+    subscription.catch((err: unknown) => {
+      if (cancelled) return
+      reload()
+      setError(err instanceof Error ? err.message : String(err))
+    })
+    return () => {
+      cancelled = true
+      subscription[Symbol.dispose]()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authenticatedApi, status])
+  }, [authenticatedApi])
 
   useEffect(() => {
     if (!cardId) {
@@ -118,6 +137,14 @@ function InsightsPage() {
     ],
     [t.insightsAll],
   )
+
+  // 보류는 기본 '전체' 목록에서 숨긴다. '보류' 탭을 직접 선택한 때만 보인다.
+  const visibleCards = useMemo(() => {
+    if (!cards) return null
+    if (status === '보류') return cards
+    if (!status) return cards.filter((c) => c.status !== '보류')
+    return cards
+  }, [cards, status])
 
   if (cardId) {
     return (
@@ -247,18 +274,18 @@ function InsightsPage() {
       </div>
 
       {error && <div className="text-sm text-red-600">{error}</div>}
-      {!cards && !error && (
+      {!visibleCards && !error && (
         <div className="flex items-center gap-2 text-kumo-inactive">
           <Spinner size={16} className="animate-spin" />
           {t.issueStatsLoading}
         </div>
       )}
-      {cards && cards.length === 0 && (
+      {visibleCards && visibleCards.length === 0 && (
         <div className="rounded-lg border border-kumo-line bg-kumo-elevated p-6 text-sm text-kumo-inactive">
           {t.insightsEmpty}
         </div>
       )}
-      {cards && cards.length > 0 && (
+      {visibleCards && visibleCards.length > 0 && (
         <div className="overflow-hidden rounded-lg border border-kumo-line">
           <table className="w-full text-left text-sm">
             <thead className="bg-kumo-tint text-kumo-inactive">
@@ -270,7 +297,7 @@ function InsightsPage() {
               </tr>
             </thead>
             <tbody>
-              {cards.map((c) => (
+              {visibleCards.map((c) => (
                 <tr
                   key={c.cardId}
                   className="cursor-pointer border-t border-kumo-line hover:bg-kumo-tint"

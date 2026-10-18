@@ -531,6 +531,11 @@ export interface AuthenticatedApi extends RpcTarget {
   createInsightCard(input: InsightCardInput): Promise<InsightCard>;
   /** Insight Tracker: change status (신규|검증중|채택|보류). */
   setInsightCardStatus(cardId: string, status: InsightStatus): Promise<InsightCard | null>;
+  /**
+   * Insight Tracker live co-editing. Delivers the full card list on subscribe and
+   * on every mutation from any session. Dispose the returned stub to unsubscribe.
+   */
+  subscribeInsightCards(subscriber: InsightSubscriber): Promise<RpcStub<{}>>;
 
   /**
    * The deployment's standard output formats, in the order they should be offered -- what fills a
@@ -1420,6 +1425,14 @@ export type InsightCardInput = {
   tags?: string[];
   sources?: { kind?: string; label?: string; ref?: string }[];
 };
+
+/**
+ * Live Insight Tracker updates. `onInsightCardsChanged` is called with the full
+ * list immediately on subscribe and after every mutation (any session).
+ */
+export interface InsightSubscriber {
+  onInsightCardsChanged(cards: InsightCard[]): void;
+}
 
 /** The result of `AuthenticatedApi.listOutputs()`. */
 export type ListOutputsResult = {
