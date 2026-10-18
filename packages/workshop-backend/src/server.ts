@@ -350,8 +350,8 @@ class AuthenticatedApiImpl extends RpcTarget implements AuthenticatedApi {
     return this.#insightStore().setInsightCardStatus(cardId, status);
   }
 
-  subscribeInsightCards(subscriber: InsightSubscriber): Promise<RpcStub<{}>> {
-    return this.#insightStore().subscribeInsightCards(subscriber as RpcStub<InsightSubscriber>);
+  subscribeInsightCards(subscriber: RpcStub<InsightSubscriber>): Promise<RpcStub<{}>> {
+    return this.#insightStore().subscribeInsightCards(subscriber);
   }
 
   async listOutputFormats(): Promise<OutputFormatOffer[]> {

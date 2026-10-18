@@ -535,7 +535,7 @@ export interface AuthenticatedApi extends RpcTarget {
    * Insight Tracker live co-editing. Delivers the full card list on subscribe and
    * on every mutation from any session. Dispose the returned stub to unsubscribe.
    */
-  subscribeInsightCards(subscriber: InsightSubscriber): Promise<RpcStub<{}>>;
+  subscribeInsightCards(subscriber: RpcStub<InsightSubscriber>): Promise<RpcStub<{}>>;
 
   /**
    * The deployment's standard output formats, in the order they should be offered -- what fills a
