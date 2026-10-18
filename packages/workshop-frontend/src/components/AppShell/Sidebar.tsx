@@ -127,6 +127,12 @@ export default function Sidebar({
               collapsed={collapsed}
             />
             <SidebarItem
+              to="/issue-stats"
+              label={t.issueStats}
+              icon={<ChartBar size={14} weight="regular" />}
+              collapsed={collapsed}
+            />
+            <SidebarItem
               to="/workspaces"
               label={t.workspaces}
               icon={<SquaresFour size={14} weight="regular" />}
@@ -142,12 +148,6 @@ export default function Sidebar({
               to="/outputs"
               label={t.outputs}
               icon={<Stack size={14} weight="regular" />}
-              collapsed={collapsed}
-            />
-            <SidebarItem
-              to="/issue-stats"
-              label={t.issueStats}
-              icon={<ChartBar size={14} weight="regular" />}
               collapsed={collapsed}
             />
             {/* Gatekeeper management apps (e.g. the Context Library), listed dynamically. */}
