@@ -57,9 +57,36 @@ export class InsightTrackerDurableObject extends DurableObject<Cloudflare.Env> {
   #seq = 0;
   #seeded = false;
 
+  #ensureTable(): void {
+    this.ctx.storage.sql.exec(`
+      CREATE TABLE IF NOT EXISTS insight_cards (
+        card_id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        status TEXT NOT NULL,
+        priority TEXT NOT NULL,
+        body TEXT NOT NULL,
+        tags TEXT NOT NULL,
+        sources TEXT NOT NULL,
+        created TEXT NOT NULL,
+        updated TEXT NOT NULL,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `);
+    this.ctx.storage.sql.exec(
+      `CREATE INDEX IF NOT EXISTS idx_insight_cards_status ON insight_cards(status)`,
+    );
+    this.ctx.storage.sql.exec(
+      `CREATE INDEX IF NOT EXISTS idx_insight_cards_priority ON insight_cards(priority)`,
+    );
+    this.ctx.storage.sql.exec(
+      `CREATE INDEX IF NOT EXISTS idx_insight_cards_updated ON insight_cards(updated_at)`,
+    );
+  }
+
   #ensureSeeded(): void {
     if (this.#seeded) return;
     this.#seeded = true;
+    this.#ensureTable();
     const count = this.ctx.storage.sql
       .exec<{ n: number }>(`SELECT COUNT(*) AS n FROM insight_cards`)
       .toArray();
