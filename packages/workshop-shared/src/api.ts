@@ -511,6 +511,19 @@ export interface AuthenticatedApi extends RpcTarget {
   listOutputs(): Promise<ListOutputsResult>;
 
   /**
+   * List issue-stats snapshots loaded from `issue-managing-statistics.md` (via the
+   * `load-issue-stats` script into the ISSUE_STATS D1). Newest first. Used by the
+   * Issue Stats page.
+   */
+  listIssueStatsSnapshots(): Promise<IssueStatsSnapshotSummary[]>;
+
+  /**
+   * Fetch one issue-stats snapshot with its per-project rows. Returns null when the
+   * id does not exist.
+   */
+  getIssueStatsSnapshot(id: number): Promise<IssueStatsSnapshotDetail | null>;
+
+  /**
    * The deployment's standard output formats, in the order they should be offered -- what fills a
    * "New Document / New Slides / ..." menu. Empty when the deployment promotes none.
    *
@@ -1336,6 +1349,40 @@ export type OutputFormatOffer = {
 
   /** The blueprint needs bindings wired up before it can run. */
   requiresSetup: boolean;
+};
+
+/**
+ * One issue-stats snapshot (a load of `issue-managing-statistics.md` into D1).
+ * Returned by `AuthenticatedApi.listIssueStatsSnapshots()`.
+ */
+export type IssueStatsSnapshotSummary = {
+  /** D1 row id of `issue_stats_snapshots`. */
+  id: number;
+  /** Organization section heading (e.g. "TCG (`text-consulting-group`)"). */
+  org: string;
+  /** Open issue total for the org in that snapshot. */
+  openTotal: number;
+  /** `조회 시각` from the source markdown. */
+  queriedAt: string;
+  /** Number of project rows attached to this snapshot. */
+  rowCount: number;
+};
+
+/** One project row inside an issue-stats snapshot. */
+export type IssueStatsRow = {
+  org: string;
+  project: string;
+  /** Type code from the source table (A/B/C/D) or null. */
+  issueType: string | null;
+  openCount: number;
+  notes: string | null;
+};
+
+/** Snapshot with its rows. Returned by `AuthenticatedApi.getIssueStatsSnapshot()`. */
+export type IssueStatsSnapshotDetail = IssueStatsSnapshotSummary & {
+  /** Absolute path of the markdown file that was loaded. */
+  sourceFile: string;
+  rows: IssueStatsRow[];
 };
 
 /** The result of `AuthenticatedApi.listOutputs()`. */

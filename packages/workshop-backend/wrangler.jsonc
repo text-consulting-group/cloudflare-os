@@ -77,6 +77,13 @@
       "bucket_name": "gadgets-blueprint-content"
     }
   ],
+  "d1_databases": [
+    {
+      "binding": "ISSUE_STATS",
+      "database_name": "yctour-office-issue-stats",
+      "database_id": "08edad0f-264a-403e-8eae-b805c9818aa9"
+    }
+  ],
   "worker_loaders": [
     {
       "binding": "LOADER"
