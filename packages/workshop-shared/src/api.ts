@@ -523,6 +523,15 @@ export interface AuthenticatedApi extends RpcTarget {
    */
   getIssueStatsSnapshot(id: number): Promise<IssueStatsSnapshotDetail | null>;
 
+  /** Insight Tracker: list cards, optionally filtered by status. */
+  listInsightCards(status?: InsightStatus): Promise<InsightCard[]>;
+  /** Insight Tracker: fetch one card. Null when missing. */
+  getInsightCard(cardId: string): Promise<InsightCard | null>;
+  /** Insight Tracker: create a card; server assigns the next INS-### id. */
+  createInsightCard(input: InsightCardInput): Promise<InsightCard>;
+  /** Insight Tracker: change status (신규|검증중|채택|보류). */
+  setInsightCardStatus(cardId: string, status: InsightStatus): Promise<InsightCard | null>;
+
   /**
    * The deployment's standard output formats, in the order they should be offered -- what fills a
    * "New Document / New Slides / ..." menu. Empty when the deployment promotes none.
@@ -1383,6 +1392,33 @@ export type IssueStatsSnapshotDetail = IssueStatsSnapshotSummary & {
   /** Absolute path of the markdown file that was loaded. */
   sourceFile: string;
   rows: IssueStatsRow[];
+};
+
+/** Insight Tracker card status. */
+export type InsightStatus = '신규' | '검증중' | '채택' | '보류';
+
+/** One insight card (Gadget-style tracker item). */
+export type InsightCard = {
+  /** Stable id like INS-001. */
+  cardId: string;
+  title: string;
+  status: InsightStatus;
+  priority: 'low' | 'medium' | 'high';
+  body: string;
+  tags: string[];
+  sources: { kind?: string; label?: string; ref?: string }[];
+  created: string;
+  updated: string;
+};
+
+/** Payload for `AuthenticatedApi.createInsightCard()`. */
+export type InsightCardInput = {
+  title: string;
+  body?: string;
+  status?: InsightStatus;
+  priority?: 'low' | 'medium' | 'high';
+  tags?: string[];
+  sources?: { kind?: string; label?: string; ref?: string }[];
 };
 
 /** The result of `AuthenticatedApi.listOutputs()`. */

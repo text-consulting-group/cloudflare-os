@@ -30,6 +30,13 @@ import { serveSiteLogo, SITE_LOGO_PATH } from "./site-logo.js";
 import { createWorkshopLogger } from "./observability";
 import { wrapDoStubForTelemetry } from "./do-telemetry";
 import { listIssueStatsSnapshots, getIssueStatsSnapshot } from "./issue-stats.js";
+import {
+  listInsightCards,
+  getInsightCard,
+  createInsightCard,
+  setInsightCardStatus,
+} from "./insights.js";
+import type { InsightCard, InsightCardInput, InsightStatus } from "@gadgets/workshop-shared/api";
 
 const logger = createWorkshopLogger("workshop.server");
 
@@ -310,6 +317,22 @@ class AuthenticatedApiImpl extends RpcTarget implements AuthenticatedApi {
 
   getIssueStatsSnapshot(id: number): Promise<IssueStatsSnapshotDetail | null> {
     return getIssueStatsSnapshot(this.env, id);
+  }
+
+  listInsightCards(status?: InsightStatus): Promise<InsightCard[]> {
+    return listInsightCards(this.env, status);
+  }
+
+  getInsightCard(cardId: string): Promise<InsightCard | null> {
+    return getInsightCard(this.env, cardId);
+  }
+
+  createInsightCard(input: InsightCardInput): Promise<InsightCard> {
+    return createInsightCard(this.env, input);
+  }
+
+  setInsightCardStatus(cardId: string, status: InsightStatus): Promise<InsightCard | null> {
+    return setInsightCardStatus(this.env, cardId, status);
   }
 
   async listOutputFormats(): Promise<OutputFormatOffer[]> {

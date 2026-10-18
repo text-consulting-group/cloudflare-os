@@ -82,6 +82,11 @@
       "binding": "ISSUE_STATS",
       "database_name": "yctour-office-issue-stats",
       "database_id": "08edad0f-264a-403e-8eae-b805c9818aa9"
+    },
+    {
+      "binding": "INSIGHTS",
+      "database_name": "yctour-office-insights",
+      "database_id": "edda8fa0-b8d5-4c0b-aa08-618f2fd54548"
     }
   ],
   "worker_loaders": [

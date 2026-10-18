@@ -23,6 +23,16 @@ export type Messages = {
   issueStatsProject: string
   issueStatsType: string
   issueStatsNotes: string
+  insights: string
+  insightsDescription: string
+  insightsAll: string
+  insightsCreate: string
+  insightsTitle: string
+  insightsBody: string
+  insightsStatus: string
+  insightsPriority: string
+  insightsSources: string
+  insightsEmpty: string
   explore: string
   exploreDescription: string
   featured: string
@@ -71,7 +81,7 @@ export type Messages = {
 
 const messages: Record<Locale, Messages> = {
   en: {
-    home: 'Home', workspaces: 'Workspaces', blueprints: 'Blueprints', outputs: 'Outputs', outputsDescription: 'Everything your workspaces have produced, in one place.', issueStats: 'Issue Stats', issueStatsDescription: 'Open-issue snapshots by organization, loaded from issue-managing-statistics.md.', issueStatsBackToList: 'Back to list', issueStatsLoading: 'Loading…', issueStatsEmpty: 'No snapshots loaded yet. Run scripts/issue-stats/load-issue-stats.mjs to populate.', issueStatsNotFound: 'Snapshot not found.', issueStatsOrg: 'Organization', issueStatsOpenTotal: 'Open', issueStatsRows: 'Rows', issueStatsQueriedAt: 'Queried at', issueStatsProject: 'Project', issueStatsType: 'Type', issueStatsNotes: 'Notes', explore: 'Explore', exploreDescription: 'Discover featured blueprints to use as starting points. Open one to create a workspace from it, or save it to reuse later.', featured: 'Featured',
+    home: 'Home', workspaces: 'Workspaces', blueprints: 'Blueprints', outputs: 'Outputs', outputsDescription: 'Everything your workspaces have produced, in one place.', issueStats: 'Issue Stats', issueStatsDescription: 'Open-issue snapshots by organization, loaded from issue-managing-statistics.md.', issueStatsBackToList: 'Back to list', issueStatsLoading: 'Loading…', issueStatsEmpty: 'No snapshots loaded yet. Run scripts/issue-stats/load-issue-stats.mjs to populate.', issueStatsNotFound: 'Snapshot not found.', issueStatsOrg: 'Organization', issueStatsOpenTotal: 'Open', issueStatsRows: 'Rows', issueStatsQueriedAt: 'Queried at', issueStatsProject: 'Project', issueStatsType: 'Type', issueStatsNotes: 'Notes', insights: 'Insight Tracker', insightsDescription: 'Track research insights and decisions as cards with sources and status.', insightsAll: 'All', insightsCreate: 'New card', insightsTitle: 'Title', insightsBody: 'Body', insightsStatus: 'Status', insightsPriority: 'Priority', insightsSources: 'Sources', insightsEmpty: 'No insight cards yet.', explore: 'Explore', exploreDescription: 'Discover featured blueprints to use as starting points. Open one to create a workspace from it, or save it to reuse later.', featured: 'Featured',
     providers: 'Providers', profile: 'Profile', admin: 'Admin', signOut: 'Sign out', language: 'Language',
     search: 'Search', systemPaths: 'System Paths', login: 'Sign in', signup: 'Create account', username: 'Username', password: 'Password',
     workspaceDescription: 'Each workspace is an isolated environment with its own conversations, gatekeepers, and outputs.',
@@ -85,7 +95,7 @@ const messages: Record<Locale, Messages> = {
     },
   },
   vi: {
-    home: 'Trang chủ', workspaces: 'Không gian làm việc', blueprints: 'Bản thiết kế', outputs: 'Kết quả', outputsDescription: 'Tất cả kết quả do không gian làm việc tạo ra, tập trung tại một nơi.', issueStats: 'Thống kê issue', issueStatsDescription: 'Ảnh chụp issue mở theo tổ chức, nạp từ issue-managing-statistics.md.', issueStatsBackToList: 'Về danh sách', issueStatsLoading: 'Đang tải…', issueStatsEmpty: 'Chưa có ảnh chụp. Chạy scripts/issue-stats/load-issue-stats.mjs để nạp.', issueStatsNotFound: 'Không tìm thấy ảnh chụp.', issueStatsOrg: 'Tổ chức', issueStatsOpenTotal: 'Mở', issueStatsRows: 'Dòng', issueStatsQueriedAt: 'Thời điểm truy vấn', issueStatsProject: 'Dự án', issueStatsType: 'Loại', issueStatsNotes: 'Ghi chú', explore: 'Khám phá', exploreDescription: 'Khám phá các bản thiết kế nổi bật để dùng làm điểm khởi đầu. Mở một bản để tạo không gian làm việc hoặc lưu lại để dùng sau.', featured: 'Nổi bật',
+    home: 'Trang chủ', workspaces: 'Không gian làm việc', blueprints: 'Bản thiết kế', outputs: 'Kết quả', outputsDescription: 'Tất cả kết quả do không gian làm việc tạo ra, tập trung tại một nơi.', issueStats: 'Thống kê issue', issueStatsDescription: 'Ảnh chụp issue mở theo tổ chức, nạp từ issue-managing-statistics.md.', issueStatsBackToList: 'Về danh sách', issueStatsLoading: 'Đang tải…', issueStatsEmpty: 'Chưa có ảnh chụp. Chạy scripts/issue-stats/load-issue-stats.mjs để nạp.', issueStatsNotFound: 'Không tìm thấy ảnh chụp.', issueStatsOrg: 'Tổ chức', issueStatsOpenTotal: 'Mở', issueStatsRows: 'Dòng', issueStatsQueriedAt: 'Thời điểm truy vấn', issueStatsProject: 'Dự án', issueStatsType: 'Loại', issueStatsNotes: 'Ghi chú', insights: 'Insight Tracker', insightsDescription: 'Theo dõi insight·quyết định dạng thẻ có nguồn và trạng thái.', insightsAll: 'Tất cả', insightsCreate: 'Thẻ mới', insightsTitle: 'Tiêu đề', insightsBody: 'Nội dung', insightsStatus: 'Trạng thái', insightsPriority: 'Ưu tiên', insightsSources: 'Nguồn', insightsEmpty: 'Chưa có thẻ insight.', explore: 'Khám phá', exploreDescription: 'Khám phá các bản thiết kế nổi bật để dùng làm điểm khởi đầu. Mở một bản để tạo không gian làm việc hoặc lưu lại để dùng sau.', featured: 'Nổi bật',
     providers: 'Nhà cung cấp', profile: 'Hồ sơ', admin: 'Quản trị', signOut: 'Đăng xuất', language: 'Ngôn ngữ',
     search: 'Tìm kiếm', systemPaths: 'Đường dẫn hệ thống', login: 'Đăng nhập', signup: 'Tạo tài khoản', username: 'Tên người dùng', password: 'Mật khẩu',
     workspaceDescription: 'Mỗi không gian làm việc là một môi trường riêng với các cuộc trò chuyện, trình kết nối và kết quả của riêng mình.',
@@ -99,7 +109,7 @@ const messages: Record<Locale, Messages> = {
     },
   },
   ko: {
-    home: '홈', workspaces: '워크스페이스', blueprints: '청사진', outputs: '결과물', outputsDescription: '워크스페이스에서 만든 모든 결과물을 한곳에서 확인하세요.', issueStats: '이슈 통계', issueStatsDescription: 'issue-managing-statistics.md에서 적재한 조직별 open 이슈 스냅샷입니다.', issueStatsBackToList: '목록으로', issueStatsLoading: '불러오는 중…', issueStatsEmpty: '스냅샷이 없습니다. scripts/issue-stats/load-issue-stats.mjs를 실행하세요.', issueStatsNotFound: '스냅샷을 찾을 수 없습니다.', issueStatsOrg: '조직', issueStatsOpenTotal: 'Open', issueStatsRows: '행', issueStatsQueriedAt: '조회 시각', issueStatsProject: '프로젝트', issueStatsType: '유형', issueStatsNotes: '비고', explore: '탐색', exploreDescription: '시작점으로 사용할 추천 청사진을 찾아보세요. 청사진을 열어 워크스페이스를 만들거나 나중에 다시 사용할 수 있도록 저장하세요.', featured: '추천',
+    home: '홈', workspaces: '워크스페이스', blueprints: '청사진', outputs: '결과물', outputsDescription: '워크스페이스에서 만든 모든 결과물을 한곳에서 확인하세요.', issueStats: '이슈 통계', issueStatsDescription: 'issue-managing-statistics.md에서 적재한 조직별 open 이슈 스냅샷입니다.', issueStatsBackToList: '목록으로', issueStatsLoading: '불러오는 중…', issueStatsEmpty: '스냅샷이 없습니다. scripts/issue-stats/load-issue-stats.mjs를 실행하세요.', issueStatsNotFound: '스냅샷을 찾을 수 없습니다.', issueStatsOrg: '조직', issueStatsOpenTotal: 'Open', issueStatsRows: '행', issueStatsQueriedAt: '조회 시각', issueStatsProject: '프로젝트', issueStatsType: '유형', issueStatsNotes: '비고', insights: '인사이트 트래커', insightsDescription: '리서치 인사이트·판단을 출처·상태가 있는 카드로 추적합니다.', insightsAll: '전체', insightsCreate: '카드 추가', insightsTitle: '제목', insightsBody: '내용', insightsStatus: '상태', insightsPriority: '우선순위', insightsSources: '출처', insightsEmpty: '인사이트 카드가 없습니다.', explore: '탐색', exploreDescription: '시작점으로 사용할 추천 청사진을 찾아보세요. 청사진을 열어 워크스페이스를 만들거나 나중에 다시 사용할 수 있도록 저장하세요.', featured: '추천',
     providers: '제공자', profile: '프로필', admin: '관리자', signOut: '로그아웃', language: '언어',
     search: '검색', systemPaths: '시스템 경로', login: '로그인', signup: '계정 만들기', username: '사용자 이름', password: '비밀번호',
     workspaceDescription: '각 워크스페이스는 대화, 게이트키퍼, 결과물을 독립적으로 관리하는 환경입니다.',

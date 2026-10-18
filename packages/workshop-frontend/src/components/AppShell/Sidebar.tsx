@@ -6,6 +6,7 @@ import {
   Compass,
   Hexagon,
   House,
+  Lightbulb,
   MagnifyingGlass,
   SidebarSimple,
   SquaresFour,
@@ -130,6 +131,12 @@ export default function Sidebar({
               to="/issue-stats"
               label={t.issueStats}
               icon={<ChartBar size={14} weight="regular" />}
+              collapsed={collapsed}
+            />
+            <SidebarItem
+              to="/insights"
+              label={t.insights}
+              icon={<Lightbulb size={14} weight="regular" />}
               collapsed={collapsed}
             />
             <SidebarItem

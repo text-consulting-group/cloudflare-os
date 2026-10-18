@@ -41,6 +41,9 @@ declare global {
       // Issue-stats snapshot D1 (populated by yctour-office scripts/issue-stats/load-issue-stats.mjs).
       ISSUE_STATS?: D1Database;
 
+      // Insight Tracker cards (Gadget-style) D1.
+      INSIGHTS?: D1Database;
+
       // Note: gatekeeper service bindings (GATEKEEPER_*) are intentionally NOT declared here. Core
       // discovers them generically by scanning env for the GATEKEEPER_ prefix (buildGatekeeperVendorMap)
       // and never references a specific gatekeeper by name, so naming one here would be wrong.
