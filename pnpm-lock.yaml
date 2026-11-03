@@ -108,7 +108,7 @@ importers:
     devDependencies:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
-        version: 5.20261005.1
+        version: 5.20261027.1
       '@gadgets/scripts':
         specifier: workspace:*
         version: link:../../scripts
