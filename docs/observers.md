@@ -867,7 +867,8 @@ its resource types.
 
 | Gatekeeper | Resource type / binding | Strategy | `addObserver` behavior |
 |---|---|---|---|
-| **cloudflare** | (no resources — auth only) | **N** | Never in scope; nothing to implement. |
+| **cloudflare** | Workers Observability (account) | **B**, kernel-checked (§10) | Every read reports `account/<accountId>`. `verifyObserverAccess` allows an observer only if a telemetry read through their own connection succeeds in that account, and a connection whose grant lacks `workers-observability.read` (a billing-only one) is denied without asking Cloudflare. The observer's `UserAccount` reuses an allowed answer for up to 15 minutes and a denial for up to 15 seconds, counted from when it asked Cloudflare and only until its credentials are next installed. `addObserver` still requires the same, for reads made before reads reported it. |
+| **cloudflare** | Workers Observability (one Worker) | **B**, kernel-checked (§10) | Pinned to the Worker's immutable ID (the Workers API's `id`, the legacy Scripts API's `tag`), resolved from the URL's name when the binding is created. Every read reports `account/<accountId>/worker/<workerId>`, and is scoped to the Worker's current name and versions, re-checking each event's `$workers.scriptVersion.id`, since telemetry names a Worker only by a name another Worker can take. `verifyObserverAccess` allows an observer only with the account check above and the Worker, looked up by its ID with their own connection (which needs `workers-tail.read`), visible to them; answers are reused as above. `addObserver` still requires that Worker. A binding stored before Worker IDs reads nothing, and `addObserver` requires the whole account's telemetry for what it read by name. |
 | **email** | Email Mailbox | **D** | No-op. Synthetic per-gadget inbound address; the gadget's collaborators are the intended audience. |
 | **spotify** | Account / Playlist | **D** | No-op. Personal, low-stakes; no corp-security concern. |
 | **homeassistant** | Instance / Area / Label / Device / Entity | **D** | No-op. Self-hosted personal; the pasted long-lived token is all-or-nothing and HA exposes no per-user/per-entity ACL oracle to check against. |
@@ -951,7 +952,10 @@ per-connection protocol, flag, or switch: each call to `authorizeObservation()` 
 runs first). The Context Library is the first shipping gatekeeper to report subresources (§9.2).
 Google Calendar reports `calendar/calendar/<calendarId>` for its metadata and event listings, and
 `calendar/freeBusy/<calendarId>` for each calendar an availability check reads; Google BigQuery
-reports the datasets each read reveals. Scheduled Tasks and Web Search report `[]` on every read.
+reports the datasets each read reveals. Cloudflare Workers Observability reports
+`account/<accountId>` for every account-wide read and
+`account/<accountId>/worker/<workerId>` for every single-Worker read. Scheduled Tasks and Web
+Search report `[]` on every read.
 The gatekeeper's side of the contract (ID rules and limits, `verifyObserverAccess()` answers, what
 `addObserver()` must still enforce) is documented on those members in
 `workshop-shared/src/gatekeeper.ts`, and
