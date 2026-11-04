@@ -276,6 +276,11 @@ class AuthenticatedApiImpl extends RpcTarget implements AuthenticatedApi {
     try {
       result = await overseer.open(userId, profileId, notifyClosed, shareKey, configureObservers);
     } catch (err) {
+      // Correlate opaque JSRPC failures ("internal error; reference = ...") with the named open
+      // step logs emitted inside OverseerDurableObject.open() (issue #31).
+      logger.error("gadget open failed", {
+        event: "gadget.open.failed", gadgetId: id, error: err,
+      });
       // A denial proves this user's listing for the workspace is stale: revocation tries to drop it
       // (refreshAffectedCollaboratorListings), but that push is best-effort. Only catches entries
       // they click; others stay frozen at revocation, as a disconnected collaborator gets no pushes.

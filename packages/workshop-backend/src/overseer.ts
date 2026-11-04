@@ -6528,12 +6528,58 @@ type OverseerRestoreParams = {
   codeId?: string;
 };
 
+/**
+ * Opaque workerd JSRPC failures ("internal error; reference = ...") wrap an exception thrown on
+ * the far side of a nested RPC call and hide the original error (see gadget-export.ts). They can
+ * be transient (output gate, connection blips), so read-only open steps retry them briefly.
+ */
+function isTransientInternalRpcError(err: unknown): boolean {
+  return err instanceof Error && err.message.includes("internal error");
+}
+
 export class OverseerDurableObject extends DurableObject<Cloudflare.Env> {
   private impl: OverseerImpl;
 
   constructor(ctx: DurableObjectState, env: Cloudflare.Env) {
     super(ctx, env);
     this.impl = new OverseerImpl(ctx, env);
+  }
+
+  /**
+   * `open()` issues several nested JSRPC calls whose failures surface as opaque "internal error"
+   * messages. Wrapping each step names the failing step in structured logs before rethrowing, so
+   * Workers logs can identify the root cause (issue #31).
+   */
+  async #openStep<T>(step: string, fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (err) {
+      this.impl.logger.error("workspace open step failed", {
+        event: "workspace.open.step.failed", operation: step, error: err,
+      });
+      throw err;
+    }
+  }
+
+  /** Like `#openStep`, but retries transient opaque JSRPC failures of read-only calls. */
+  async #openRpcStep<T>(step: string, fn: () => Promise<T>): Promise<T> {
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        return await fn();
+      } catch (err) {
+        lastErr = err;
+        if (!isTransientInternalRpcError(err) || attempt === 3) break;
+        this.impl.logger.warn("workspace open step retrying", {
+          event: "workspace.open.step.retry", operation: step, sequence: attempt, error: err,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
+      }
+    }
+    this.impl.logger.error("workspace open step failed", {
+      event: "workspace.open.step.failed", operation: step, failureCount: 3, error: lastErr,
+    });
+    throw lastErr;
   }
 
   /**
@@ -6590,11 +6636,12 @@ export class OverseerDurableObject extends DurableObject<Cloudflare.Env> {
     let firstOpen = !this.impl.ownerId;
     if (firstOpen) {
       // This Overseer hasn't been initialized yet.
-      await this.ctx.blockConcurrencyWhile(async () => {
+      await this.#openStep("firstOpen.init", () => this.ctx.blockConcurrencyWhile(async () => {
         // Verify that the owner believes it exists. The owner account must be initialized with
         // any new gadgets first before the gadget is actually opened.
         let owner = this.impl.users.get(this.impl.users.idFromString(userId));
-        let meta = await owner.getGadget(this.ctx.id.toString());
+        let meta = await this.#openRpcStep("firstOpen.getGadget",
+            () => owner.getGadget(this.ctx.id.toString()));
         if (!meta) {
           throw createOpenGadgetError(OPEN_GADGET_ERROR_CODES.workspaceNotFound);
         }
@@ -6613,7 +6660,7 @@ export class OverseerDurableObject extends DurableObject<Cloudflare.Env> {
         this.impl.storage.ownerId.put(userId);
 
         this.#initializeEmptyCodeSnapshot();
-      });
+      }));
     }
 
     let isOwner = (userId == this.impl.ownerId);
@@ -6658,16 +6705,18 @@ export class OverseerDurableObject extends DurableObject<Cloudflare.Env> {
         throw createOpenGadgetError(OPEN_GADGET_ERROR_CODES.workspaceAccessDenied);
       }
 
-      let sharing = await this.impl.getSharingManager();
+      let sharing = await this.#openRpcStep("sharing.getManager",
+          () => this.impl.getSharingManager());
 
       // If a share key was provided, redeem it. The owner already has full access and should not
       // appear in the collaborators table.
       if (shareKey) {
-        await sharing.redeemShareKey({
-          rawKey: shareKey,
-          profileId,
-          fetchProfile: () => clientUser.whoami(),
-        });
+        await this.#openStep("sharing.redeemShareKey", () =>
+            sharing.redeemShareKey({
+              rawKey: shareKey,
+              profileId,
+              fetchProfile: () => clientUser.whoami(),
+            }));
       }
 
       // Check authorization. Compute the caller's effective role from the permission graph; this
@@ -6690,7 +6739,8 @@ export class OverseerDurableObject extends DurableObject<Cloudflare.Env> {
       // gatekeepers, configuring their connected accounts if needed. This runs only after a valid
       // role is confirmed, so it never reveals gatekeeper or resource metadata to an unauthorized
       // user. The prohibitAllSharing short-circuit above still wins -- lockdown takes precedence.
-      await this.impl.ensureObserver(profileId, clientUser, role, configureObservers);
+      await this.#openStep("ensureObserver", () =>
+          this.impl.ensureObserver(profileId, clientUser, role, configureObservers));
 
       // Fire-and-forget a call to the collaborator's user DO so the gadget appears on
       // (or is refreshed on) their home page.
