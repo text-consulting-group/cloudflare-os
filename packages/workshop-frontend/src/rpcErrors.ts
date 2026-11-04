@@ -7,7 +7,7 @@ import { reportIssue } from './errorReporting'
 // back, `durableObjectReset` ⇔ the target Durable Object was reset. Flags are authoritative;
 // message matching is a fallback for errors that lose them in transit.
 
-export type RpcErrorClass = 'do-reset' | 'connection' | 'auth' | 'other'
+export type RpcErrorClass = 'do-reset' | 'overloaded' | 'connection' | 'auth' | 'other'
 
 // What calls on a capability whose hosting Durable Object already reset reject with — always
 // flagless; only calls in flight at reset time get the flagged error. A workerd runtime string
@@ -66,6 +66,10 @@ export function classifyRpcError(err: unknown): RpcErrorClass {
   // not browser transport — it arrived over a healthy socket, so the reconnect path would never
   // observe it. It classifies with do-reset, whose callers own that recovery.
   if (isDurableObjectResetError(err) || flag(err, 'retryable')) return 'do-reset'
+  // `overloaded` means the target Durable Object pushed back — a transient condition that a
+  // brief wait and retry is expected to cure. Quiet it like do-reset rather than surfacing a
+  // loud error the user cannot act on.
+  if (isOverloadedError(err)) return 'overloaded'
   const message = messageOf(err)
   if (CONNECTION_MESSAGES.some(m => message.includes(m))) {
     return 'connection'
@@ -81,7 +85,7 @@ export function classifyRpcError(err: unknown): RpcErrorClass {
 /** True for failures that a healthy retry or reconnect is expected to cure. */
 export function isTransientRpcError(err: unknown): boolean {
   const cls = classifyRpcError(err)
-  return cls === 'do-reset' || cls === 'connection'
+  return cls === 'do-reset' || cls === 'overloaded' || cls === 'connection'
 }
 
 /**
@@ -95,7 +99,7 @@ export function logRpcFailure(
 ): boolean {
   const cls = classifyRpcError(err)
   if (cls === 'do-reset' && options?.reportSite) reportDoResetError(options.reportSite, err)
-  const transient = cls === 'do-reset' || cls === 'connection'
+  const transient = cls === 'do-reset' || cls === 'overloaded' || cls === 'connection'
   if (transient) console.debug(message, err)
   else console.error(message, err)
   return transient

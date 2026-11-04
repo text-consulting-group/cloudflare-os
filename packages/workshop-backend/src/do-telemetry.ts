@@ -98,3 +98,24 @@ export function wrapDoStubForTelemetry<T extends { id: DurableObjectId }>(
     },
   });
 }
+
+/**
+ * Maps over `items` with at most `limit` concurrent `fn` invocations, preserving input order in
+ * the result. Used to throttle parallel DO fan-out so a burst of calls cannot trigger load
+ * shedding (issue #31).
+ */
+export async function mapWithConcurrency<T, R>(
+    items: readonly T[], limit: number,
+    fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  async function worker(): Promise<void> {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i], i);
+    }
+  }
+  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}

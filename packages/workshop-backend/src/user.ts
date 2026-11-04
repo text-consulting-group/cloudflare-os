@@ -6,6 +6,7 @@ import { CloudflareGatekeeperUser } from "@gadgets/workshop-shared/cloudflare-ga
 import { DurableObject, WorkerEntrypoint } from "cloudflare:workers";
 import { createTypedStorage, collection } from "@gadgets/typed-storage";
 import { createWorkshopLogger } from "./observability";
+import { mapWithConcurrency } from "./do-telemetry";
 import { getAiGatewayConfig } from "./ai-gateway.js";
 import { utcDayKey, nextUtcMidnightIso, DailyQuotaResult } from "./ai-gateway-billing/limits/config.js";
 import type { AdminSettings } from "./admin-settings.js";
@@ -915,8 +916,13 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
 
     let ownerId = this.ctx.id.toString();
     let overseers = this.ctx.exports.OverseerDurableObject;
-    let results = await Promise.allSettled(targets.map(id =>
-        overseers.get(overseers.idFromString(id)).getOutputsForOwnerBackfill(ownerId)));
+    let results = await mapWithConcurrency(targets, 4, async id => {
+      try {
+        return { status: "fulfilled" as const, value: await overseers.get(overseers.idFromString(id)).getOutputsForOwnerBackfill(ownerId) };
+      } catch (reason) {
+        return { status: "rejected" as const, reason };
+      }
+    });
 
     let failureCount = 0;
     let firstError: unknown;
@@ -1278,7 +1284,7 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
   // listing and auto-provisioning ambient gatekeepers; callers apply their own admin-mode filter.
   async #ambientVendors():
       Promise<Array<{vendorId: string, vendor: Service<GatekeeperVendor>, description: VendorDescription}>> {
-    let described = await Promise.all([...this.vendors].map(async ([vendorId, vendor]) => {
+    let described = await mapWithConcurrency([...this.vendors], 4, async ([vendorId, vendor]) => {
       try {
         let description = await vendor.describe();
         return description.autoProvisionsAccount ? {vendorId, vendor, description} : null;
@@ -1288,7 +1294,7 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
         });
         return null;
       }
-    }));
+    });
     return described.filter(v => v !== null);
   }
 

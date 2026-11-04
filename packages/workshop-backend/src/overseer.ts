@@ -24,6 +24,7 @@ import { AgentGadgetInfo, AgentHooks, AiChatAgentContext, ChatBindingEntry, Seed
 import { deploymentOutputForBlueprint, FormatOffer, listFormatOffers, readAdminConfig } from "./admin-config";
 import { foldProposedChanges, isCompactionTurn, type ChangeBatch } from "./agent-compaction";
 import { ambientGatekeeperMode } from "./provisioning-policy";
+import { mapWithConcurrency } from "./do-telemetry";
 import { listFeaturedBlueprintsFromKv, readBlueprintContent, readBlueprintKvRecord, sanitizeBlueprintOutput } from "./blueprint-archive";
 import { WebFetchEnv } from "./web-fetch";
 import { UserDurableObject, UserAiModelRecord, type UserChatContext, type WorkspaceOutputEntry } from "./user";
@@ -6288,7 +6289,7 @@ class OverseerImpl implements AgentHooks {
         //    failure rather than just the first, so a re-prompt can present them all at once.
         let failures = new Map<number, ObserverBindingFailure>();
 
-        await Promise.all(inScope.map(async gk => {
+        await mapWithConcurrency(inScope, 4, async gk => {
           let accountId = accountChoices[gk.id];
           let vendorId = observerVendorId(gk);
           if (!vendorId) {
@@ -6318,7 +6319,7 @@ class OverseerImpl implements AgentHooks {
             // outage). Treat every failure as repairable and let the user try again.
             fail(stringifyError(err), err);
           }
-        }));
+        });
 
         if (failures.size > 0) {
           // Drop the failed choices so the re-prompt asks about exactly these bindings, and forget
