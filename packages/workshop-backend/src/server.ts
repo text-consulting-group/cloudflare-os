@@ -109,7 +109,7 @@ class AuthenticatedApiImpl extends RpcTarget implements AuthenticatedApi {
   private insights: DurableObjectNamespace<InsightTrackerDurableObject>;
 
   #insightStore(): DurableObjectStub<InsightTrackerDurableObject> {
-    return this.insights.getByName("insights");
+    return wrapDoStubForTelemetry(this.insights.getByName("insights"));
   }
 
   #userId: DurableObjectId;
@@ -246,7 +246,7 @@ class AuthenticatedApiImpl extends RpcTarget implements AuthenticatedApi {
     } catch {
       throw createOpenGadgetError(OPEN_GADGET_ERROR_CODES.workspaceNotFound);
     }
-    let overseer = this.overseers.get(overseerId);
+    let overseer = wrapDoStubForTelemetry(this.overseers.get(overseerId));
 
     // HACK: Detect loss of the connection to the DO by:
     // - Pass a callback to overseer.open() which it should call when the session is disposed.

@@ -23,10 +23,22 @@ export function isDoResetError(e: unknown): boolean {
   return flags.durableObjectReset === true || flags.retryable === true;
 }
 
+/**
+ * True for opaque workerd JSRPC failures ("internal error; reference = ..."). These wrap an
+ * exception thrown on the far side of a nested RPC call and hide the original error. They can be
+ * transient (output gate, connection blips, brief DO overload), so read-only calls may retry them
+ * briefly (issue #31).
+ */
+export function isTransientInternalRpcError(e: unknown): boolean {
+  return e instanceof Error && e.message.includes("internal error");
+}
+
 /** Wraps a DO stub so every method call observes DO-reset rejections for telemetry
  * (`user_do.reset.surfaced`, with the method name as the operation) and rethrows them
- * unchanged. Otherwise transparent. Pass the caller's logger so the log attributes the reset
- * to the component (and context, e.g. gadgetId) that observed it; defaults to the Worker's. */
+ * unchanged. Transient opaque JSRPC failures ("internal error") are retried up to 2 times
+ * with a short backoff before giving up (issue #31). Otherwise transparent. Pass the caller's
+ * logger so the log attributes the reset to the component (and context, e.g. gadgetId) that
+ * observed it; defaults to the Worker's. */
 export function wrapDoStubForTelemetry<T extends { id: DurableObjectId }>(
     stub: T, log: ReturnType<typeof createWorkshopLogger> = logger): T {
   return new Proxy(stub, {
@@ -39,22 +51,48 @@ export function wrapDoStubForTelemetry<T extends { id: DurableObjectId }>(
       const methods = target as unknown as Record<PropertyKey, (...a: unknown[]) => unknown>;
       if (typeof prop !== "string") return (...args: unknown[]) => methods[prop](...args);
       return (...args: unknown[]) => {
-        const result = methods[prop](...args);
+        const call = () => methods[prop](...args);
+        const result = call();
         if (typeof (result as PromiseLike<unknown> | undefined)?.then !== "function") return result;
         return (async () => {
-          try {
-            return await (result as PromiseLike<unknown>);
-          } catch (e) {
-            if (isDoResetError(e)) {
-              log.warn("user DO reset observed", {
-                event: "user_do.reset.surfaced",
+          const maxAttempts = 3;
+          let lastErr: unknown;
+          for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+              return await (attempt === 1 ? result : call());
+            } catch (e) {
+              lastErr = e;
+              if (isDoResetError(e)) {
+                log.warn("user DO reset observed", {
+                  event: "user_do.reset.surfaced",
+                  operation: prop,
+                  durableObjectId: target.id.toString(),
+                  error: e,
+                });
+                throw e;  // DO resets are not retried: the object may need re-initialization.
+              }
+              if (!isTransientInternalRpcError(e) || attempt === maxAttempts) break;
+              log.warn("DO RPC transient error, retrying", {
+                event: "do_rpc.retry",
                 operation: prop,
+                sequence: attempt,
                 durableObjectId: target.id.toString(),
                 error: e,
               });
+              await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
             }
-            throw e;
           }
+          if (isDoResetError(lastErr)) throw lastErr;  // already logged above
+          if (isTransientInternalRpcError(lastErr)) {
+            log.error("DO RPC transient error exhausted retries", {
+              event: "do_rpc.retry.exhausted",
+              operation: prop,
+              failureCount: maxAttempts,
+              durableObjectId: target.id.toString(),
+              error: lastErr,
+            });
+          }
+          throw lastErr;
         })();
       };
     },
