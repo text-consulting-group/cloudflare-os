@@ -633,7 +633,11 @@ function getModelDirect(config: AiModelConfig, sessionAffinity?: string): ModelH
         model: {
           id: config.model,
           name: catalog?.name ?? config.model,
-          api: "openai-responses",
+          // A custom apiUrl is an OpenAI-compatible third-party host (K-EXAONE, MiMo, ...) whose
+          // compatibility surface is /chat/completions. The Responses API is OpenAI-only and such
+          // hosts 404 it (their bare 404 body reads as "404 status code (no body)" in the SDK).
+          // Models on the default OpenAI endpoint keep the responses API.
+          api: config.apiUrl ? "openai-completions" : "openai-responses",
           provider: "openai",
           baseUrl: config.apiUrl ?? "https://api.openai.com/v1",
           reasoning: catalog?.reasoning ?? true,
