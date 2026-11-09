@@ -645,7 +645,11 @@ function getModelDirect(config: AiModelConfig, sessionAffinity?: string): ModelH
           cost: catalog?.cost ?? ZERO_COST,
           ...window,
           thinkingLevelMap: catalog?.thinkingLevelMap,
-          compat: catalog?.compat,
+          // Third-party compat hosts speak the classic `system` role; pi's `developer` default
+          // is rejected as an invalid request (K-EXAONE 400s on it).
+          compat: config.apiUrl
+              ? { ...catalog?.compat, supportsDeveloperRole: false }
+              : catalog?.compat,
         },
         apiKey: config.apiToken,
         sessionAffinity,
