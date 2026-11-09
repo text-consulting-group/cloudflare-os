@@ -371,12 +371,14 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
   /**
    * Pre-populate the model picker from deployment env vars (QUICK_MODEL_* endpoint).
    * Idempotent: each record is only written when the id is not already present, so this
-   * doubles as the lazy migration for accounts created before both MiMo tiers shipped.
-   * Seeds both MiMo tiers so the picker offers pro (default/preferred) and flash from
-   * the start; preferredModel is only set when the user has not chosen one.
+   * doubles as the lazy migration between org endpoint changes. Seeds the org default model
+   * (K-EXAONE via QUICK_MODEL_ID) so the picker works from the start; preferredModel is only
+   * set when the user has not chosen one — except that a preferred MiMo model is reset, since
+   * the deployment now serves the EXAONE endpoint and MiMo seeds carried the previous
+   * endpoint's token.
    *
    * Also drops leftover GPT catalog registrations (e.g. gpt-6-lunar, gpt-5.6-*) that
-   * this deployment has no credentials for — only the org MiMo endpoint is usable here.
+   * this deployment has no credentials for — only the org EXAONE endpoint is usable here.
    */
   #seedDefaultModels(): void {
     // Remove unusable GPT entries saved while those catalog items still existed.
@@ -386,23 +388,21 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
       }
     }
     const preferred = this.storage.preferredModel.get();
-    if (preferred && !this.storage.aiModels.get(preferred)) {
+    // A missing model or a MiMo leftover (pre-EXAONE org default) falls back to the current default.
+    if (preferred && (!this.storage.aiModels.get(preferred) || /^mimo-/i.test(preferred))) {
       this.storage.preferredModel.put(null);
     }
 
     const apiUrl = this.env.QUICK_MODEL_API_URL;
     if (!apiUrl) return;
     const apiToken = this.env.QUICK_MODEL_API_TOKEN ?? "";
-    const defaultModel = this.env.QUICK_MODEL_ID ?? "mimo-v2.6-pro";
-    // Both MiMo tiers share the org endpoint; flash is the lighter alternate.
-    const models = new Set([defaultModel, "mimo-v2.6-pro", "mimo-v2.6-flash"]);
-    for (const model of models) {
-      if (this.storage.aiModels.get(model)) continue;
+    const defaultModel = this.env.QUICK_MODEL_ID ?? "k-exaone_v2.5";
+    if (!this.storage.aiModels.get(defaultModel)) {
       this.storage.aiModels.put({
-        profile: { type: "agent", id: model, name: model },
+        profile: { type: "agent", id: defaultModel, name: defaultModel },
         config: {
           provider: "openai",
-          model,
+          model: defaultModel,
           apiToken,
           apiUrl,
         },
