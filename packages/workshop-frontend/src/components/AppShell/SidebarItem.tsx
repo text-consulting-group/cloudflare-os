@@ -48,7 +48,7 @@ export default function SidebarItem({
       {...linkProps}
       title={collapsed ? label : undefined}
       className={[
-        'group relative flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] leading-[18px] tracking-[-0.25px] transition-colors',
+        'group relative flex min-h-[44px] items-center gap-2.5 rounded-lg px-2.5 text-[15px] leading-[20px] tracking-[-0.25px] transition-colors md:h-8 md:text-[13px] md:leading-[18px]',
         isActive
           ? 'bg-kumo-fill font-medium text-kumo-strong'
           : 'font-normal text-kumo-default hover:bg-kumo-tint',
@@ -56,7 +56,7 @@ export default function SidebarItem({
     >
       <span
         className={[
-          'flex h-5 w-5 shrink-0 items-center justify-center transition-colors',
+          'flex h-6 w-6 shrink-0 items-center justify-center transition-colors [&>svg]:h-[18px] [&>svg]:w-[18px] md:h-5 md:w-5 md:[&>svg]:h-[14px] md:[&>svg]:w-[14px]',
           isActive ? 'text-kumo-brand' : 'text-kumo-subtle group-hover:text-kumo-default',
         ].join(' ')}
       >

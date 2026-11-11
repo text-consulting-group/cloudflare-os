@@ -125,7 +125,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Routed content. Flat enterprise canvas — no texture. Bottom padding clears the mobile tab bar. */}
-        <main className="min-h-0 flex-1 overflow-y-auto pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
       </div>
 
       {/* GitHub Mobile 앱형 하단 탭 바 — 모바일 전용 (#34) */}
