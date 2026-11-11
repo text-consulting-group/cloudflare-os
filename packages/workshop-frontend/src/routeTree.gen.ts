@@ -17,6 +17,7 @@ import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as GatekeepersRouteImport } from './routes/gatekeepers'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as IssueStatsRouteImport } from './routes/issue-stats'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OutputsRouteImport } from './routes/outputs'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProvidersRouteImport } from './routes/providers'
@@ -65,6 +66,11 @@ const InsightsRoute = InsightsRouteImport.update({
 const IssueStatsRoute = IssueStatsRouteImport.update({
   id: '/issue-stats',
   path: '/issue-stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OutputsRoute = OutputsRouteImport.update({
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/gatekeepers': typeof GatekeepersRoute
   '/insights': typeof InsightsRoute
   '/issue-stats': typeof IssueStatsRoute
+  '/notifications': typeof NotificationsRoute
   '/outputs': typeof OutputsRoute
   '/profile': typeof ProfileRoute
   '/providers': typeof ProvidersRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/gatekeepers': typeof GatekeepersRoute
   '/insights': typeof InsightsRoute
   '/issue-stats': typeof IssueStatsRoute
+  '/notifications': typeof NotificationsRoute
   '/outputs': typeof OutputsRoute
   '/profile': typeof ProfileRoute
   '/providers': typeof ProvidersRoute
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/gatekeepers': typeof GatekeepersRoute
   '/insights': typeof InsightsRoute
   '/issue-stats': typeof IssueStatsRoute
+  '/notifications': typeof NotificationsRoute
   '/outputs': typeof OutputsRoute
   '/profile': typeof ProfileRoute
   '/providers': typeof ProvidersRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/gatekeepers'
     | '/insights'
     | '/issue-stats'
+    | '/notifications'
     | '/outputs'
     | '/profile'
     | '/providers'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/gatekeepers'
     | '/insights'
     | '/issue-stats'
+    | '/notifications'
     | '/outputs'
     | '/profile'
     | '/providers'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/gatekeepers'
     | '/insights'
     | '/issue-stats'
+    | '/notifications'
     | '/outputs'
     | '/profile'
     | '/providers'
@@ -240,6 +252,7 @@ export interface RootRouteChildren {
   GatekeepersRoute: typeof GatekeepersRoute
   InsightsRoute: typeof InsightsRoute
   IssueStatsRoute: typeof IssueStatsRoute
+  NotificationsRoute: typeof NotificationsRoute
   OutputsRoute: typeof OutputsRoute
   ProfileRoute: typeof ProfileRoute
   ProvidersRoute: typeof ProvidersRoute
@@ -307,6 +320,13 @@ declare module '@tanstack/react-router' {
       path: '/issue-stats'
       fullPath: '/issue-stats'
       preLoaderRoute: typeof IssueStatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/outputs': {
@@ -384,6 +404,7 @@ const rootRouteChildren: RootRouteChildren = {
   GatekeepersRoute: GatekeepersRoute,
   InsightsRoute: InsightsRoute,
   IssueStatsRoute: IssueStatsRoute,
+  NotificationsRoute: NotificationsRoute,
   OutputsRoute: OutputsRoute,
   ProfileRoute: ProfileRoute,
   ProvidersRoute: ProvidersRoute,

@@ -1,16 +1,16 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { House, SquaresFour, FolderSimple, Compass, User } from '@phosphor-icons/react'
+import { House, SquaresFour, FolderSimple, Bell, User } from '@phosphor-icons/react'
 import type { ReactNode } from 'react'
 
 /**
  * Mobile bottom tab bar — GitHub Mobile 앱형 하단 내비게이션 (yctour-office #34).
  * 모바일(md 미만)에서만 표시되며, 데스크톱은 기존 사이드바를 사용한다.
- * 탭 5개: 홈 · 워크숍 · 자료 · 탐색 · 더보기 (기존 라우트 기준 — 알림 탭은 전용 라우트 신설 후 교체 예정).
+ * 탭 5개: 홈 · 워크숍 · 자료 · 알림 · 더보기 (탐색은 사이드바 드로어로 접근).
  */
 type Tab = {
   icon: ReactNode
   label: string
-  to: '/' | '/workspaces' | '/context' | '/explore' | '/profile'
+  to: '/' | '/workspaces' | '/context' | '/notifications' | '/profile'
   matchPrefix?: boolean
 }
 
@@ -18,7 +18,7 @@ const TABS: Tab[] = [
   { icon: <House size={22} weight="duotone" />, label: '홈', to: '/' },
   { icon: <SquaresFour size={22} weight="duotone" />, label: '워크숍', to: '/workspaces', matchPrefix: true },
   { icon: <FolderSimple size={22} weight="duotone" />, label: '자료', to: '/context' },
-  { icon: <Compass size={22} weight="duotone" />, label: '탐색', to: '/explore' },
+  { icon: <Bell size={22} weight="duotone" />, label: '알림', to: '/notifications' },
   { icon: <User size={22} weight="duotone" />, label: '더보기', to: '/profile' },
 ]
 
