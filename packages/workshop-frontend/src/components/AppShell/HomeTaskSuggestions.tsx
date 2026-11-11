@@ -86,16 +86,16 @@ function SuggestionRow({
       <button
         type="button"
         onClick={onClick}
-        className="press group flex w-full cursor-pointer items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-kumo-tint"
+        className="press group flex w-full cursor-pointer items-center gap-3 rounded-xl px-2.5 py-3 text-left transition-colors hover:bg-kumo-tint"
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-kumo-fill text-kumo-subtle transition-colors group-hover:text-kumo-default">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-kumo-fill text-kumo-subtle transition-colors group-hover:text-kumo-default [&>svg]:h-[18px] [&>svg]:w-[18px] md:h-8 md:w-8 md:[&>svg]:h-4 md:[&>svg]:w-4">
           {icon}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] leading-[18px] font-medium tracking-[-0.25px] text-kumo-default">
+          <span className="block truncate text-[15px] leading-[20px] font-medium tracking-[-0.25px] text-kumo-default md:text-[13px] md:leading-[18px]">
             {label}
           </span>
-          <span className="block truncate text-[12px] leading-4 tracking-[-0.2px] text-kumo-subtle">
+          <span className="block truncate text-[13px] leading-[18px] tracking-[-0.2px] text-kumo-subtle md:text-[12px] md:leading-4">
             {description}
           </span>
         </span>
@@ -129,7 +129,7 @@ export default function HomeTaskSuggestions({
 
   return (
     <section aria-label="Example tasks" className="flex flex-col gap-1">
-      <h3 className="px-1 pb-1 text-[12px] font-medium uppercase tracking-[0.06em] text-kumo-inactive">
+      <h3 className="px-1 pb-1 text-[13px] font-medium uppercase tracking-[0.06em] text-kumo-inactive md:text-[12px]">
         {t.getStarted}
       </h3>
       <ul className="flex flex-col gap-0.5">

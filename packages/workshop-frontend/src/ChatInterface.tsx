@@ -3449,7 +3449,7 @@ export const ChatInput = ({
                   syncMirrorScroll(el);
                 }
               }}
-              className={`relative z-[1] w-full resize-none border-none bg-transparent p-0 text-[14px] leading-[22px] tracking-[-0.25px] outline-none placeholder:text-kumo-inactive disabled:cursor-not-allowed ${composerTextareaClass}`}
+              className={`relative z-[1] w-full resize-none border-none bg-transparent p-0 text-[16px] leading-[24px] tracking-[-0.25px] outline-none placeholder:text-kumo-inactive disabled:cursor-not-allowed md:text-[14px] md:leading-[22px] ${composerTextareaClass}`}
             />
           </div>
         </div>
@@ -3490,7 +3490,7 @@ export const ChatInput = ({
                 render={
                   <button
                     type="button"
-                    className="group flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg text-kumo-inactive transition-[background-color,color,transform] duration-150 ease-out hover:bg-kumo-tint hover:text-kumo-subtle focus-visible:bg-kumo-tint focus-visible:text-kumo-subtle focus-visible:outline-none active:scale-[0.96] data-[popup-open]:bg-kumo-tint data-[popup-open]:text-kumo-subtle"
+                    className="group flex h-10 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg text-kumo-inactive transition-[background-color,color,transform] duration-150 ease-out hover:bg-kumo-tint hover:text-kumo-subtle focus-visible:bg-kumo-tint focus-visible:text-kumo-subtle focus-visible:outline-none active:scale-[0.96] data-[popup-open]:bg-kumo-tint data-[popup-open]:text-kumo-subtle md:h-8 md:w-8"
                     aria-label="Open chat options"
                   >
                     <Plus size={18} />
@@ -3530,7 +3530,7 @@ export const ChatInput = ({
             <button
               type="button"
               onClick={handleAttachOpen}
-              className="inline-flex h-8 flex-shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-[13px] leading-none tracking-[-0.25px] text-kumo-inactive transition-[background-color,color,transform] duration-150 ease-out hover:bg-kumo-tint hover:text-kumo-subtle focus-visible:bg-kumo-tint focus-visible:text-kumo-subtle focus-visible:outline-none active:scale-[0.97]"
+              className="inline-flex h-10 flex-shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-[14px] leading-none tracking-[-0.25px] text-kumo-inactive transition-[background-color,color,transform] duration-150 ease-out hover:bg-kumo-tint hover:text-kumo-subtle focus-visible:bg-kumo-tint focus-visible:text-kumo-subtle focus-visible:outline-none active:scale-[0.97] md:h-8 md:text-[13px]"
             >
               <Plug size={15} className="flex-shrink-0" />
               <span className={`leading-none ${styles.attachLabelText}`}>{attachLabel ?? "Add resource"}</span>
@@ -3544,7 +3544,7 @@ export const ChatInput = ({
                   render={
                     <button
                       type="button"
-                      className="group inline-flex h-8 min-w-0 max-w-[180px] cursor-pointer items-center gap-1.5 rounded-lg px-2 text-[13px] leading-5 tracking-[-0.25px] text-kumo-subtle transition-[background-color,color,transform] duration-150 ease-out hover:bg-kumo-tint hover:text-kumo-default focus-visible:bg-kumo-tint focus-visible:text-kumo-default focus-visible:outline-none active:scale-[0.97] data-[popup-open]:bg-kumo-tint data-[popup-open]:text-kumo-default"
+                      className="group inline-flex h-10 min-w-0 max-w-[180px] cursor-pointer items-center gap-1.5 rounded-lg px-2 text-[14px] leading-5 tracking-[-0.25px] text-kumo-subtle transition-[background-color,color,transform] duration-150 ease-out hover:bg-kumo-tint hover:text-kumo-default focus-visible:bg-kumo-tint focus-visible:text-kumo-default focus-visible:outline-none active:scale-[0.97] data-[popup-open]:bg-kumo-tint data-[popup-open]:text-kumo-default md:h-8 md:text-[13px]"
                       aria-label="Select model"
                     >
                       <span className="min-w-0 truncate">{selectedModelLabel}</span>
@@ -3605,7 +3605,7 @@ export const ChatInput = ({
                   onClick={submitMessage}
                   disabled={!canSend}
                   tone="primary"
-                  className="!h-8 !w-8 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="!h-10 !w-10 disabled:cursor-not-allowed disabled:opacity-30 md:!h-8 md:!w-8"
                   aria-label="Send message"
                 >
                   {/* Arrow-up icon */}

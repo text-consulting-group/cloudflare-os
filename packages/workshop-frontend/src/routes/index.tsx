@@ -174,10 +174,10 @@ export function HomePageContent({ prompt }: HomeSearch) {
       <div className="flex w-full max-w-2xl flex-col items-stretch gap-8">
         {/* Hero */}
         <header className="text-center">
-          <h1 className="text-3xl font-semibold tracking-tight leading-tight text-kumo-default sm:text-4xl">
+          <h1 className="text-4xl font-semibold tracking-tight leading-tight text-kumo-default sm:text-4xl">
             {t.homeTitle}
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-[14px] leading-5 tracking-[-0.25px] text-kumo-subtle">
+          <p className="mx-auto mt-3 max-w-md text-[16px] leading-6 tracking-[-0.25px] text-kumo-subtle sm:text-[14px] sm:leading-5">
             {t.homeSubtitle}
           </p>
         </header>
