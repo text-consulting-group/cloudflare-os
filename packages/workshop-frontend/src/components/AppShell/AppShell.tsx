@@ -5,6 +5,7 @@ import TopBarNotice from '../../TopBarNotice'
 import ReconnectingChip from '../ReconnectingChip'
 import { useConnectionLost } from '../../RpcContext'
 import Sidebar from './Sidebar'
+import BottomTabBar from './BottomTabBar'
 import CommandPalette from './CommandPalette'
 import { OPEN_COMMAND_PALETTE_EVENT } from './commandPaletteBus'
 
@@ -123,9 +124,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        {/* Routed content. Flat enterprise canvas — no texture. */}
-        <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+        {/* Routed content. Flat enterprise canvas — no texture. Bottom padding clears the mobile tab bar. */}
+        <main className="min-h-0 flex-1 overflow-y-auto pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
       </div>
+
+      {/* GitHub Mobile 앱형 하단 탭 바 — 모바일 전용 (#34) */}
+      <BottomTabBar />
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
